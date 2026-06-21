@@ -220,6 +220,8 @@
       var hasHeading = false;
       var isAbsolute = false;
       var size, cx, cy, outerR;
+      var headingsBuffer = [];
+      var lastAvgTime = 0;
 
       function cardinal(h) {
         var dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
@@ -327,7 +329,12 @@
         ctx.restore();
       }
 
-      function lerpHeading() {
+      function lerpHeading(ts) {
+        if (ts && ts - lastAvgTime >= 1000 && headingsBuffer.length > 0) {
+          updateTarget();
+          lastAvgTime = ts;
+        }
+
         if (!hasHeading) {
           requestAnimationFrame(lerpHeading);
           return;
@@ -343,6 +350,20 @@
         requestAnimationFrame(lerpHeading);
       }
 
+      function updateTarget() {
+        var sumSin = 0, sumCos = 0;
+        for (var i = 0; i < headingsBuffer.length; i++) {
+          var rad = (headingsBuffer[i] * Math.PI) / 180;
+          sumSin += Math.sin(rad);
+          sumCos += Math.cos(rad);
+        }
+        var avgDeg = (Math.atan2(sumSin, sumCos) * 180) / Math.PI;
+        if (avgDeg < 0) avgDeg += 360;
+        targetHeading = avgDeg;
+        hasHeading = true;
+        headingsBuffer = [];
+      }
+
       function handleOrientation(event) {
         var h;
         if (event.webkitCompassHeading !== undefined) {
@@ -354,8 +375,7 @@
           return;
         }
         if (isAbsolute && h < 0) h += 360;
-        targetHeading = h % 360;
-        hasHeading = true;
+        headingsBuffer.push(h % 360);
       }
 
       function startListening() {
