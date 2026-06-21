@@ -20,8 +20,23 @@
   </div>
 
   <div class="menu-dropdown" id="menuDropdown">
-    <a class="menu-item active" href="index.html">Map</a>
-    <a class="menu-item" href="compass.html">Compass</a>
+    <div class="menu-item active" id="menuMap">Map</div>
+    <div class="menu-item" id="menuCompass">Compass</div>
+    <div class="menu-item" id="menuCreateRoute">Create route</div>
+    <div class="menu-item" id="menuFinishRoute" style="display:none">Finish this route</div>
+  </div>
+
+  <button class="add-point-btn" id="addPointBtn" style="display:none">+ Add Point</button>
+
+  <div class="modal-overlay" id="modalOverlay" style="display:none">
+    <div class="modal-card">
+      <h2 class="modal-title" id="modalTitle"></h2>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
+        <button class="modal-btn modal-btn-submit" id="modalSubmit">OK</button>
+      </div>
+    </div>
   </div>
 
   <div class="custom-controls center-controls">

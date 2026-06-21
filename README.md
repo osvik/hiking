@@ -9,6 +9,8 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Navigation menu to switch between map and compass
 - Custom zoom controls (+/−)
 - Center-on-user button with follow mode
+- Create hiking routes by adding GPS points on the map
+- Routes persist in SQLite and reload on page load
 - Mobile-first design
 
 ## Setup

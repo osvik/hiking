@@ -138,3 +138,153 @@ body {
   color: #007aff;
   font-weight: 600;
 }
+
+/* ----- Modal ----- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 320px;
+  width: 90%;
+  padding: 24px 20px 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #111;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.modal-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.modal-field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.modal-field input:focus {
+  border-color: #007aff;
+}
+
+.modal-field input[type="color"] {
+  width: 48px;
+  height: 48px;
+  padding: 2px;
+  border-radius: 50%;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  border: 2px solid #ccc;
+  background: none;
+}
+
+.modal-field input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.modal-field input[type="color"]::-webkit-color-swatch {
+  border-radius: 50%;
+  border: none;
+}
+
+.modal-field input[type="color"]::-moz-color-swatch {
+  border-radius: 50%;
+  border: none;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.modal-btn-cancel {
+  background: #e5e5ea;
+  color: #333;
+}
+
+.modal-btn-cancel:active {
+  background: #d1d1d6;
+}
+
+.modal-btn-submit {
+  background: #007aff;
+  color: #fff;
+}
+
+.modal-btn-submit:active {
+  background: #0066d6;
+}
+
+/* ----- Add Point Button ----- */
+
+.add-point-btn {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 28px;
+  padding: 14px 32px;
+  font-size: 17px;
+  font-weight: 700;
+  font-family: inherit;
+  box-shadow: 0 4px 16px rgba(0,122,255,0.45);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.add-point-btn:active {
+  background: #0066d6;
+  transform: translateX(-50%) scale(0.96);
+}

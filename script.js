@@ -45,6 +45,24 @@
   const menuBtn = document.getElementById('menuBtn');
   const menuDropdown = document.getElementById('menuDropdown');
 
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody = document.getElementById('modalBody');
+  const modalCancel = document.getElementById('modalCancel');
+  const modalSubmit = document.getElementById('modalSubmit');
+  const addPointBtn = document.getElementById('addPointBtn');
+  const menuMap = document.getElementById('menuMap');
+  const menuCompass = document.getElementById('menuCompass');
+  const menuCreateRoute = document.getElementById('menuCreateRoute');
+  const menuFinishRoute = document.getElementById('menuFinishRoute');
+
+  let modalResolve = null;
+  let modalReject = null;
+
+  let currentEditingRoute = null;
+  let routePolyline = null;
+  let routeMarkers = [];
+
   /**
    * Initialises the Leaflet map with OpenStreetMap tiles.
    *
@@ -217,6 +235,281 @@
     }
   }
 
+  function getApiKey() {
+    return localStorage.getItem('api_key') || null;
+  }
+
+  function setApiKey(key) {
+    localStorage.setItem('api_key', key);
+  }
+
+  function promptForApiKey() {
+    return showModal({
+      title: 'API Key Required',
+      fields: [{ id: 'api_key', label: 'Enter your API key', type: 'text', required: true }]
+    }).then(function(vals) {
+      setApiKey(vals.api_key);
+      return vals.api_key;
+    });
+  }
+
+  function apiCall(action, params) {
+    var url = 'api.php?action=' + encodeURIComponent(action);
+    Object.keys(params).forEach(function(k) {
+      if (params[k] !== null && params[k] !== undefined) {
+        url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+      }
+    });
+    return fetch(url).then(function(res) {
+      return res.text().then(function(text) {
+        var data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Server returned non-JSON response (HTTP ' + res.status + '). Check that PHP is running and sqlite extension is enabled. Raw start: ' + text.substring(0, 200));
+        }
+        if (!data.success) {
+          throw new Error(data.error || 'API error');
+        }
+        return data;
+      });
+    });
+  }
+
+  function showModal(opts) {
+    var title = opts.title;
+    var fields = opts.fields || [];
+
+    modalTitle.textContent = title;
+    modalBody.innerHTML = '';
+
+    var fieldValues = {};
+
+    fields.forEach(function(f) {
+      var div = document.createElement('div');
+      div.className = 'modal-field';
+
+      var label = document.createElement('label');
+      label.textContent = f.label;
+      label.setAttribute('for', 'modalField_' + f.id);
+      div.appendChild(label);
+
+      var input = document.createElement('input');
+      input.type = f.type || 'text';
+      input.id = 'modalField_' + f.id;
+      input.required = !!f.required;
+      if (f.placeholder) input.placeholder = f.placeholder;
+      if (f.type === 'color') input.value = '#007aff';
+      div.appendChild(input);
+
+      modalBody.appendChild(div);
+    });
+
+    modalOverlay.style.display = 'flex';
+
+    return new Promise(function(resolve, reject) {
+      modalResolve = function() {
+        var values = {};
+        fields.forEach(function(f) {
+          var input = document.getElementById('modalField_' + f.id);
+          values[f.id] = input.value.trim();
+        });
+        hideModal();
+        resolve(values);
+      };
+      modalReject = function() {
+        hideModal();
+        reject(new Error('Cancelled'));
+      };
+    });
+  }
+
+  function hideModal() {
+    modalOverlay.style.display = 'none';
+    modalResolve = null;
+    modalReject = null;
+  }
+
+  modalCancel.addEventListener('click', function() {
+    if (modalReject) modalReject();
+  });
+
+  modalSubmit.addEventListener('click', function() {
+    if (modalResolve) modalResolve();
+  });
+
+  modalOverlay.addEventListener('click', function(e) {
+    if (e.target === modalOverlay && modalReject) modalReject();
+  });
+
+  addPointBtn.addEventListener('click', function() {
+    handleAddPoint();
+  });
+
+  function handleCreateRoute() {
+    var key = getApiKey();
+
+    function doCreateRoute(k) {
+      return showModal({
+        title: 'Create Route',
+        fields: [
+          { id: 'name', label: 'Route Name', type: 'text', required: true },
+          { id: 'color', label: 'Color', type: 'color', required: true }
+        ]
+      }).then(function(vals) {
+        return apiCall('create_route', { name: vals.name, color: vals.color, api_key: k });
+      }).then(function(res) {
+        currentEditingRoute = {
+          id: res.data.id,
+          name: res.data.name,
+          color: res.data.color,
+          points: []
+        };
+        addPointBtn.style.display = 'block';
+        menuFinishRoute.style.display = 'block';
+        menuCreateRoute.style.display = 'none';
+      });
+    }
+
+    var ready = key
+      ? doCreateRoute(key)      .catch(function(err) {
+          if (err.message.indexOf('api_key') !== -1) {
+            localStorage.removeItem('api_key');
+            return promptForApiKey().then(doCreateRoute);
+          }
+          alert(err.message);
+          throw err;
+        })
+      : promptForApiKey().then(doCreateRoute);
+
+    ready.catch(function(err) {
+      if (err.message !== 'Cancelled') {
+        console.error(err);
+      }
+    });
+  }
+
+  function handleAddPoint() {
+    if (!currentEditingRoute) return;
+    if (!userMarker) {
+      alert('No GPS position yet. Please wait for a location fix.');
+      return;
+    }
+
+    var latlng = userMarker.getLatLng();
+
+    showModal({
+      title: 'Add Point',
+      fields: [
+        { id: 'label', label: 'Label (optional)', type: 'text', required: false, placeholder: 'e.g. Summit' }
+      ]
+    }).then(function(vals) {
+      var key = getApiKey();
+      return apiCall('add_point', {
+        route_id: currentEditingRoute.id,
+        lat: latlng.lat,
+        lon: latlng.lng,
+        label: vals.label,
+        api_key: key
+      }).then(function(res) {
+        var pt = res.data;
+        currentEditingRoute.points.push(pt);
+
+        var latlngArr = [pt.lat, pt.lon];
+
+        if (routePolyline) {
+          routePolyline.addLatLng(latlngArr);
+        } else {
+          routePolyline = L.polyline([latlngArr], {
+            color: currentEditingRoute.color,
+            weight: 4,
+            opacity: 0.8
+          }).addTo(map);
+        }
+
+        var marker = L.circleMarker(latlngArr, {
+          radius: 6,
+          fillColor: currentEditingRoute.color,
+          color: '#fff',
+          weight: 2,
+          fillOpacity: 0.9
+        }).addTo(map);
+
+        if (pt.label) {
+          marker.bindPopup(pt.label);
+        }
+
+        routeMarkers.push(marker);
+      });
+    }).catch(function(err) {
+      if (err.message !== 'Cancelled') {
+        alert(err.message);
+      }
+    });
+  }
+
+  function handleFinishRoute() {
+    currentEditingRoute = null;
+    routePolyline = null;
+    routeMarkers = [];
+    addPointBtn.style.display = 'none';
+    menuFinishRoute.style.display = 'none';
+    menuCreateRoute.style.display = 'block';
+  }
+
+  function loadAllRoutes() {
+    apiCall('get_routes', {}).then(function(res) {
+      var routes = res.data || [];
+      routes.forEach(function(route) {
+        if (!route.points || route.points.length === 0) return;
+
+        var latlngs = route.points.map(function(p) {
+          return [p.lat, p.lon];
+        });
+
+        var poly = L.polyline(latlngs, {
+          color: route.color,
+          weight: 4,
+          opacity: 0.8
+        }).addTo(map);
+
+        route.points.forEach(function(p) {
+          var marker = L.circleMarker([p.lat, p.lon], {
+            radius: 6,
+            fillColor: route.color,
+            color: '#fff',
+            weight: 2,
+            fillOpacity: 0.9
+          }).addTo(map);
+
+          if (p.label) {
+            marker.bindPopup(p.label);
+          }
+        });
+      });
+    }).catch(function() {
+      // silently fail if no routes
+    });
+  }
+
+  menuMap.addEventListener('click', function() {
+    window.location = 'index.html';
+  });
+
+  menuCompass.addEventListener('click', function() {
+    window.location = 'compass.html';
+  });
+
+  menuCreateRoute.addEventListener('click', function() {
+    menuDropdown.classList.remove('open');
+    handleCreateRoute();
+  });
+
+  menuFinishRoute.addEventListener('click', function() {
+    menuDropdown.classList.remove('open');
+    handleFinishRoute();
+  });
+
   centerBtn.addEventListener('click', function() {
     if (!userMarker) return;
 
@@ -255,4 +548,5 @@
 
   initMap();
   startTracking();
+  loadAllRoutes();
 })();
