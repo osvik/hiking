@@ -235,14 +235,31 @@
     }
   }
 
+  /**
+   * Reads the API key from localStorage.
+   *
+   * @returns {string|null} The stored API key, or null if not set.
+   */
   function getApiKey() {
     return localStorage.getItem('api_key') || null;
   }
 
+  /**
+   * Persists the API key to localStorage.
+   *
+   * @param {string} key - The API key to store.
+   */
   function setApiKey(key) {
     localStorage.setItem('api_key', key);
   }
 
+  /**
+   * Shows a modal prompting the user for their API key.
+   *
+   * Stores the entered key and returns it.
+   *
+   * @returns {Promise<string>} A promise that resolves with the entered key.
+   */
   function promptForApiKey() {
     return showModal({
       title: 'API Key Required',
@@ -253,6 +270,16 @@
     });
   }
 
+  /**
+   * Calls the backend API and returns the parsed JSON response.
+   *
+   * Builds a query string from the action and params, fetches the API,
+   * and throws if the response is not successful JSON.
+   *
+   * @param {string} action - The API action name (e.g. "create_route").
+   * @param {Object} params - Key-value pairs to send as query parameters.
+   * @returns {Promise<Object>} The parsed JSON response body.
+   */
   function apiCall(action, params) {
     var url = 'api.php?action=' + encodeURIComponent(action);
     Object.keys(params).forEach(function(k) {
@@ -276,6 +303,18 @@
     });
   }
 
+  /**
+   * Renders a modal dialog and returns a promise for the field values.
+   *
+   * The modal is shown immediately. The promise resolves with an object
+   * mapping field IDs to trimmed string values when the user submits.
+   * It rejects with a "Cancelled" error if the user dismisses the modal.
+   *
+   * @param {Object} opts - Modal configuration.
+   * @param {string} opts.title - Modal heading text.
+   * @param {Array<{id: string, label: string, type: string, required: boolean, placeholder?: string}>} opts.fields - Form fields to render.
+   * @returns {Promise<Object>} Resolves with { fieldId: value, ... } on submit.
+   */
   function showModal(opts) {
     var title = opts.title;
     var fields = opts.fields || [];
@@ -324,6 +363,9 @@
     });
   }
 
+  /**
+   * Hides the modal and clears pending resolve/reject callbacks.
+   */
   function hideModal() {
     modalOverlay.style.display = 'none';
     modalResolve = null;
@@ -346,6 +388,13 @@
     handleAddPoint();
   });
 
+  /**
+   * Orchestrates the full route-creation flow.
+   *
+   * Obtains or prompts for an API key, shows the name/colour modal,
+   * calls the create_route API endpoint, and enters editing mode so
+   * the user can start adding points.
+   */
   function handleCreateRoute() {
     var key = getApiKey();
 
@@ -390,6 +439,14 @@
     });
   }
 
+  /**
+   * Captures the current GPS position as a new point on the editing route.
+   *
+   * If the user is not in editing mode or has no GPS lock the function
+   * returns early with a warning. Otherwise a modal collects an optional
+   * label, the point is persisted via the API, and the polyline and
+   * marker are added to the map.
+   */
   function handleAddPoint() {
     if (!currentEditingRoute) return;
     if (!userMarker) {
@@ -450,6 +507,12 @@
     });
   }
 
+  /**
+   * Exits editing mode while keeping the drawn route on the map.
+   *
+   * Clears editing state and localStorage, hides the Add Point button
+   * and "Finish" menu item, and shows the "Create route" menu item again.
+   */
   function handleFinishRoute() {
     currentEditingRoute = null;
     routePolyline = null;
@@ -460,6 +523,12 @@
     menuCreateRoute.style.display = 'block';
   }
 
+  /**
+   * Fetches all saved routes from the API and renders them on the map.
+   *
+   * If a route matches the currently-editing route its polyline and
+   * marker references are stored so new points can extend them.
+   */
   function loadAllRoutes() {
     var editingRouteId = currentEditingRoute ? currentEditingRoute.id : null;
 
@@ -507,6 +576,12 @@
     });
   }
 
+  /**
+   * Restores the editing-mode state from localStorage after a page reload.
+   *
+   * If a saved editing route is found it is loaded into currentEditingRoute
+   * and the Add Point / Finish UI elements are shown.
+   */
   function restoreEditingRoute() {
     var saved = localStorage.getItem('editing_route');
     if (!saved) return;
