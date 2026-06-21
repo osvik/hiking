@@ -396,6 +396,7 @@
    * the user can start adding points.
    */
   function handleCreateRoute() {
+    clearRouteParams();
     var key = getApiKey();
 
     function doCreateRoute(k) {
@@ -514,6 +515,7 @@
    * and "Finish" menu item, and shows the "Create route" menu item again.
    */
   function handleFinishRoute() {
+    clearRouteParams();
     currentEditingRoute = null;
     routePolyline = null;
     routeMarkers = [];
@@ -528,13 +530,17 @@
    *
    * If a route matches the currently-editing route its polyline and
    * marker references are stored so new points can extend them.
+   *
+   * @param {number[]|null} filterIds - If provided, only routes whose IDs
+   *   appear in this array are rendered.  When null, all routes are shown.
    */
-  function loadAllRoutes() {
+  function loadAllRoutes(filterIds) {
     var editingRouteId = currentEditingRoute ? currentEditingRoute.id : null;
 
     apiCall('get_routes', {}).then(function(res) {
       var routes = res.data || [];
       routes.forEach(function(route) {
+        if (filterIds && filterIds.indexOf(route.id) === -1) return;
         if (!route.points || route.points.length === 0) return;
 
         var latlngs = route.points.map(function(p) {
@@ -596,6 +602,30 @@
     menuCreateRoute.style.display = 'none';
   }
 
+  /**
+   * Reads repeated `?route=` query parameters from the current URL.
+   *
+   * Each value is coerced to a number; non-positive values are dropped.
+   *
+   * @returns {number[]|null} An array of route IDs to display, or null
+   *   when no `?route=` params are present (meaning "show all").
+   */
+  function getRouteParamsFromURL() {
+    var params = new URLSearchParams(window.location.search);
+    var ids = params.getAll('route').map(Number).filter(function(id) { return id > 0; });
+    return ids.length > 0 ? ids : null;
+  }
+
+  /**
+   * Strips all `?route=` query parameters from the current URL without
+   * triggering a page reload (uses history.replaceState).
+   */
+  function clearRouteParams() {
+    var url = new URL(window.location);
+    url.searchParams.delete('route');
+    history.replaceState(null, '', url.toString());
+  }
+
   menuMap.addEventListener('click', function() {
     window.location = 'index.html';
   });
@@ -653,5 +683,5 @@
   initMap();
   startTracking();
   restoreEditingRoute();
-  loadAllRoutes();
+  loadAllRoutes(getRouteParamsFromURL());
 })();
