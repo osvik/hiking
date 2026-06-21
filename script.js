@@ -1,14 +1,41 @@
+/**
+ * Hiking Assistant — real-time GPS tracking map.
+ *
+ * Renders an interactive Leaflet map that follows the user's position
+ * using the HTML5 Geolocation API's watchPosition. Provides custom
+ * zoom controls and a center-on-user button.
+ *
+ * @module hiking-assistant
+ */
 (function() {
+  /** @constant {[number, number]} Default map center (Madrid) before GPS lock. */
   const DEFAULT_COORDS = [40.4168, -3.7038];
+
+  /** @constant {number} Initial zoom level on map load and first GPS lock. */
   const DEFAULT_ZOOM = 16;
+
+  /** @constant {number} Maximum allowed zoom level. */
   const MAX_ZOOM = 18;
+
+  /** @constant {number} Minimum allowed zoom level. */
   const MIN_ZOOM = 3;
 
+  /** @type {L.Map} Leaflet map instance. */
   let map;
+
+  /** @type {L.Marker} Current user position marker on the map. */
   let userMarker;
+
+  /** @type {L.Circle} Accuracy circle drawn around the user marker. */
   let userCircle;
+
+  /** @type {number|null} watchPosition handle used to stop tracking. */
   let trackingId;
+
+  /** @type {number} Current zoom level, kept in sync with map.getZoom(). */
   let currentZoom = DEFAULT_ZOOM;
+
+  /** @type {boolean} Whether the map is actively following the user. */
   let followingUser = true;
 
   const badgeEl = document.getElementById('locationBadge');
@@ -16,6 +43,13 @@
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
 
+  /**
+   * Initialises the Leaflet map with OpenStreetMap tiles.
+   *
+   * Disables the default zoom control and minimised attribution.
+   * Hooks into zoom events to keep `currentZoom` in sync and
+   * `movestart` to detect manual panning (which stops follow mode).
+   */
   function initMap() {
     map = L.map('map', {
       zoomControl: false,
@@ -41,6 +75,16 @@
     });
   }
 
+  /**
+   * Places (or moves) the user position marker and accuracy circle.
+   *
+   * Removes any previous marker and circle before creating new ones
+   * so the user sees a single, up-to-date dot on the map.
+   *
+   * @param {number} lat - Latitude from the GPS position.
+   * @param {number} lng - Longitude from the GPS position.
+   * @param {number} accuracy - GPS accuracy in metres (radius of the circle).
+   */
   function createUserMarker(lat, lng, accuracy) {
     var icon = L.divIcon({
       className: '',
@@ -72,6 +116,13 @@
     }
   }
 
+  /**
+   * Pans the map to the given coordinates and re-enables follow mode.
+   *
+   * @param {number} lat - Target latitude.
+   * @param {number} lng - Target longitude.
+   * @param {boolean} animate - Whether to fly (animated) or jump instantly.
+   */
   function moveToUser(lat, lng, animate) {
     followingUser = true;
     updateCenterButtonStyle();
@@ -83,6 +134,12 @@
     }
   }
 
+  /**
+   * Toggles the centre button appearance to reflect follow state.
+   *
+   * Blue fill when following the user, white/grey when the user has
+   * manually panned away.
+   */
   function updateCenterButtonStyle() {
     if (followingUser) {
       centerBtn.style.background = '#007aff';
@@ -93,6 +150,13 @@
     }
   }
 
+  /**
+   * Starts watching the device GPS position via the Geolocation API.
+   *
+   * On each position update the marker is moved, the badge is refreshed,
+   * and the map is recentred if follow mode is active. On the first
+   * successful lock the map jumps to the user at DEFAULT_ZOOM.
+   */
   function startTracking() {
     if (!navigator.geolocation) {
       badgeEl.textContent = '❌ Geolocation not supported';
@@ -141,6 +205,9 @@
     );
   }
 
+  /**
+   * Stops GPS tracking by clearing the watchPosition handle.
+   */
   function stopTracking() {
     if (trackingId != null) {
       navigator.geolocation.clearWatch(trackingId);
