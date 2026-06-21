@@ -18,7 +18,7 @@
   const MAX_ZOOM = 18;
 
   /** @constant {number} Minimum allowed zoom level. */
-  const MIN_ZOOM = 3;
+  const MIN_ZOOM = 4;
 
   /** @type {L.Map} Leaflet map instance. */
   let map;
