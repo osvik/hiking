@@ -1,10 +1,12 @@
 # Hiking Assistant
 
-Real-time GPS tracking map for hiking. Built with Leaflet.js and the HTML5 Geolocation API.
+Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HTML5 Geolocation API, and the DeviceOrientation API.
 
 ## Features
 
 - Real-time position tracking via `watchPosition()`
+- Compass using the device magnetometer (`DeviceOrientation` API)
+- Navigation menu to switch between map and compass
 - Custom zoom controls (+/−)
 - Center-on-user button with follow mode
 - Mobile-first design
@@ -20,8 +22,9 @@ Real-time GPS tracking map for hiking. Built with Leaflet.js and the HTML5 Geolo
 
 | File | Purpose |
 |---|---|
-| `index.html` | HTML structure |
-| `style.css` | Styles and layout |
+| `index.html` | Map page |
+| `compass.html` | Compass page |
+| `style.css` | Shared styles and layout |
 | `script.js` | Map logic and GPS tracking |
 | `config.php` | SQLite database path configuration |
 | `db.php` | Database connection and schema |
@@ -151,4 +154,5 @@ If the database file does not exist, it is created automatically on the first AP
 - [Leaflet.js](https://leafletjs.com/) — interactive maps
 - [OpenStreetMap](https://www.openstreetmap.org/) — tile imagery
 - [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API) — GPS access
+- [DeviceOrientation API](https://developer.mozilla.org/en-US/docs/Web/API/DeviceOrientationEvent) — compass heading
 - PHP + SQLite — backend API
