@@ -436,7 +436,7 @@
         }).addTo(map);
 
         if (pt.label) {
-          marker.bindPopup(pt.label);
+          marker.bindTooltip(pt.label, { permanent: true, direction: 'top', offset: [0, -10] });
         }
 
         routeMarkers.push(marker);
@@ -483,7 +483,7 @@
           }).addTo(map);
 
           if (p.label) {
-            marker.bindPopup(p.label);
+            marker.bindTooltip(p.label, { permanent: true, direction: 'top', offset: [0, -10] });
           }
         });
       });
