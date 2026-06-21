@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Compass</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    .badge {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.4;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .badge.error {
+      background: rgba(180,0,0,0.8);
+    }
+
+    .permission-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .permission-overlay.hidden {
+      display: none;
+    }
+
+    .permission-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: none;
+      background: #007aff;
+      box-shadow: 0 2px 12px rgba(0,122,255,0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .permission-btn:active {
+      transform: scale(0.94);
+      background: #0066d6;
+    }
+
+    .permission-btn svg {
+      width: 28px;
+      height: 28px;
+      fill: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="badge" id="badge">0° N</div>
+  <canvas id="c"></canvas>
+
+  <div class="permission-overlay hidden" id="permissionOverlay">
+    <button class="permission-btn" id="permissionBtn" aria-label="Enable compass">
+      <svg viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z"/></svg>
+    </button>
+  </div>
+
+  <script>
+    (function () {
+      const badge = document.getElementById('badge');
+      const canvas = document.getElementById('c');
+      const ctx = canvas.getContext('2d');
+      const overlay = document.getElementById('permissionOverlay');
+      const permBtn = document.getElementById('permissionBtn');
+
+      var devicePixelRatio = window.devicePixelRatio || 1;
+      var targetHeading = 0;
+      var displayHeading = 0;
+      var hasHeading = false;
+      var isAbsolute = false;
+      var size, cx, cy, outerR;
+
+      function cardinal(h) {
+        var dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                    'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+        return dirs[Math.round(h / 22.5) % 16];
+      }
+
+      function updateBadge() {
+        var h = Math.round(displayHeading);
+        badge.textContent = h + '° ' + cardinal(h);
+      }
+
+      function resize() {
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+        size = Math.min(w, h) * 0.82;
+        if (size > 360) size = 360;
+        canvas.width = size * devicePixelRatio;
+        canvas.height = size * devicePixelRatio;
+        canvas.style.width = size + 'px';
+        canvas.style.height = size + 'px';
+        cx = canvas.width / 2;
+        cy = canvas.height / 2;
+        outerR = (size * devicePixelRatio) / 2 - 6 * devicePixelRatio;
+      }
+
+      function draw() {
+        var dpr = devicePixelRatio;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.scale(dpr, dpr);
+
+        var cssOuterR = outerR / dpr;
+        var cssCx = cx / dpr;
+        var cssCy = cy / dpr;
+
+        ctx.beginPath();
+        ctx.arc(cssCx, cssCy, cssOuterR, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(cssCx, cssCy);
+        ctx.rotate((-displayHeading * Math.PI) / 180);
+
+        var tickOuter = cssOuterR;
+        for (var deg = 0; deg < 360; deg++) {
+          var rad = (deg * Math.PI) / 180;
+          var s = Math.sin(rad);
+          var c = -Math.cos(rad);
+          var isCardinal = deg % 90 === 0;
+          var isMajor = deg % 10 === 0;
+          var tickInner;
+
+          if (isCardinal) tickInner = tickOuter - 22;
+          else if (isMajor) tickInner = tickOuter - 14;
+          else tickInner = tickOuter - 8;
+
+          ctx.beginPath();
+          ctx.moveTo(s * tickInner, c * tickInner);
+          ctx.lineTo(s * tickOuter, c * tickOuter);
+          ctx.strokeStyle = isCardinal ? '#333' : 'rgba(0,0,0,0.35)';
+          ctx.lineWidth = isCardinal ? 2 : 0.8;
+          ctx.stroke();
+        }
+
+        var labelR = cssOuterR - 36;
+        var cardinals = [
+          { deg: 0,   label: 'N' },
+          { deg: 90,  label: 'E' },
+          { deg: 180, label: 'S' },
+          { deg: 270, label: 'W' },
+        ];
+
+        cardinals.forEach(function (c) {
+          var rad = (c.deg * Math.PI) / 180;
+          var x = Math.sin(rad) * labelR;
+          var y = -Math.cos(rad) * labelR;
+          ctx.font = '600 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = c.deg === 0 ? '#007aff' : '#555';
+          ctx.fillText(c.label, x, y);
+        });
+
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(cssCx, cssCy, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#333';
+        ctx.fill();
+
+        var pointerY = cssCy - cssOuterR - 1;
+        ctx.beginPath();
+        ctx.moveTo(cssCx, pointerY);
+        ctx.lineTo(cssCx - 9, pointerY - 16);
+        ctx.lineTo(cssCx + 9, pointerY - 16);
+        ctx.closePath();
+        ctx.fillStyle = '#007aff';
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function lerpHeading() {
+        if (!hasHeading) {
+          requestAnimationFrame(lerpHeading);
+          return;
+        }
+        var delta = targetHeading - displayHeading;
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        displayHeading += delta * 0.12;
+        if (displayHeading < 0) displayHeading += 360;
+        if (displayHeading >= 360) displayHeading -= 360;
+        updateBadge();
+        draw();
+        requestAnimationFrame(lerpHeading);
+      }
+
+      function handleOrientation(event) {
+        var h;
+        if (event.webkitCompassHeading !== undefined) {
+          h = event.webkitCompassHeading;
+          isAbsolute = true;
+        } else if (event.alpha !== null) {
+          h = 360 - event.alpha;
+        } else {
+          return;
+        }
+        if (isAbsolute && h < 0) h += 360;
+        targetHeading = h % 360;
+        hasHeading = true;
+      }
+
+      function startListening() {
+        if ('ondeviceorientationabsolute' in window) {
+          window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        }
+        window.addEventListener('deviceorientation', handleOrientation, true);
+      }
+
+      function showError(msg) {
+        badge.textContent = msg;
+        badge.classList.add('error');
+      }
+
+      function init() {
+        resize();
+        draw();
+        requestAnimationFrame(lerpHeading);
+        window.addEventListener('resize', function () {
+          resize();
+          draw();
+        });
+
+        if (!window.DeviceOrientationEvent) {
+          showError('Compass not supported');
+          return;
+        }
+
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+          overlay.classList.remove('hidden');
+
+          permBtn.addEventListener('click', function () {
+            DeviceOrientationEvent.requestPermission()
+              .then(function (state) {
+                if (state === 'granted') {
+                  overlay.classList.add('hidden');
+                  startListening();
+                } else {
+                  showError('Permission denied');
+                  overlay.classList.add('hidden');
+                }
+              })
+              .catch(function () {
+                showError('Permission error');
+                overlay.classList.add('hidden');
+              });
+          });
+        } else {
+          startListening();
+        }
+
+        setTimeout(function () {
+          if (!hasHeading) {
+            showError('No compass sensor');
+          }
+        }, 3000);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
