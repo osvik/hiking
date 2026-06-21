@@ -365,6 +365,7 @@
           color: res.data.color,
           points: []
         };
+        localStorage.setItem('editing_route', JSON.stringify(currentEditingRoute));
         addPointBtn.style.display = 'block';
         menuFinishRoute.style.display = 'block';
         menuCreateRoute.style.display = 'none';
@@ -414,6 +415,7 @@
       }).then(function(res) {
         var pt = res.data;
         currentEditingRoute.points.push(pt);
+        localStorage.setItem('editing_route', JSON.stringify(currentEditingRoute));
 
         var latlngArr = [pt.lat, pt.lon];
 
@@ -452,12 +454,15 @@
     currentEditingRoute = null;
     routePolyline = null;
     routeMarkers = [];
+    localStorage.removeItem('editing_route');
     addPointBtn.style.display = 'none';
     menuFinishRoute.style.display = 'none';
     menuCreateRoute.style.display = 'block';
   }
 
   function loadAllRoutes() {
+    var editingRouteId = currentEditingRoute ? currentEditingRoute.id : null;
+
     apiCall('get_routes', {}).then(function(res) {
       var routes = res.data || [];
       routes.forEach(function(route) {
@@ -473,6 +478,12 @@
           opacity: 0.8
         }).addTo(map);
 
+        var isEditing = route.id === editingRouteId;
+        if (isEditing) {
+          routePolyline = poly;
+          routeMarkers = [];
+        }
+
         route.points.forEach(function(p) {
           var marker = L.circleMarker([p.lat, p.lon], {
             radius: 6,
@@ -485,11 +496,29 @@
           if (p.label) {
             marker.bindTooltip(p.label, { permanent: true, direction: 'top', offset: [0, -10] });
           }
+
+          if (isEditing) {
+            routeMarkers.push(marker);
+          }
         });
       });
     }).catch(function() {
       // silently fail if no routes
     });
+  }
+
+  function restoreEditingRoute() {
+    var saved = localStorage.getItem('editing_route');
+    if (!saved) return;
+    try {
+      currentEditingRoute = JSON.parse(saved);
+    } catch (e) {
+      localStorage.removeItem('editing_route');
+      return;
+    }
+    addPointBtn.style.display = 'block';
+    menuFinishRoute.style.display = 'block';
+    menuCreateRoute.style.display = 'none';
   }
 
   menuMap.addEventListener('click', function() {
@@ -548,5 +577,6 @@
 
   initMap();
   startTracking();
+  restoreEditingRoute();
   loadAllRoutes();
 })();
