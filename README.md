@@ -31,6 +31,21 @@ Real-time GPS tracking map for hiking. Built with Leaflet.js and the HTML5 Geolo
 
 All endpoints return JSON. Base URL is `api.php`.
 
+### Authentication
+
+Write actions (`create_route`, `edit_route`, `delete_route`, `add_point`, `remove_point`, `edit_point_label`) require an API key:
+
+```
+GET api.php?action=create_route&name=X&color=red&api_key=YOUR_KEY
+```
+
+Read actions (`get_routes`, `get_route`) are public and don't require a key.
+
+Set your API key in `config.php`:
+```php
+define('API_KEY', 'your-secret-key-here');
+```
+
 ### Response format
 
 ```json

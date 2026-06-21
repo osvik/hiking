@@ -29,6 +29,14 @@ if (!$action) {
     errorResponse('Missing action parameter');
 }
 
+$writeActions = ['create_route', 'edit_route', 'delete_route', 'add_point', 'remove_point', 'edit_point_label'];
+if (in_array($action, $writeActions, true)) {
+    $apiKey = $_GET['api_key'] ?? '';
+    if ($apiKey !== API_KEY) {
+        errorResponse('Invalid or missing api_key', 401);
+    }
+}
+
 $db = getDB();
 
 switch ($action) {
