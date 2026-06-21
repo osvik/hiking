@@ -42,6 +42,8 @@
   const centerBtn = document.getElementById('centerBtn');
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const menuBtn = document.getElementById('menuBtn');
+  const menuDropdown = document.getElementById('menuDropdown');
 
   /**
    * Initialises the Leaflet map with OpenStreetMap tiles.
@@ -236,6 +238,19 @@
       currentZoom--;
       map.setZoom(currentZoom);
     }
+  });
+
+  menuBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    menuDropdown.classList.toggle('open');
+  });
+
+  document.addEventListener('click', function() {
+    menuDropdown.classList.remove('open');
+  });
+
+  menuDropdown.addEventListener('click', function(e) {
+    e.stopPropagation();
   });
 
   initMap();

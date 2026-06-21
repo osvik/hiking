@@ -89,3 +89,52 @@ body {
 .location-badge.error {
   background: rgba(180,0,0,0.8);
 }
+
+.menu-dropdown {
+  position: fixed;
+  top: 68px;
+  right: 16px;
+  z-index: 1001;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  overflow: hidden;
+  min-width: 140px;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.menu-dropdown.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.menu-item {
+  display: block;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item:active {
+  background: #e0e0e0;
+}
+
+.menu-item.active {
+  color: #007aff;
+  font-weight: 600;
+}
