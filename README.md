@@ -11,6 +11,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Center-on-user button with follow mode
 - Create hiking routes by adding GPS points on the map
 - Routes persist in SQLite and reload on page load
+- Filter displayed routes via `?route=` URL parameters
 - Mobile-first design
 
 ## Setup
@@ -140,6 +141,20 @@ GET api.php?action=edit_point_label&point_id=5&label=NewLabel
 ```
 GET api.php?action=remove_point&point_id=5
 ```
+
+## Filtering Routes by URL
+
+You can limit which routes appear on the map by passing repeated `?route=` query parameters containing route IDs.  For example:
+
+```
+index.html?route=1&route=2
+```
+
+This shows only routes 1 and 2 on the map.  Routes whose IDs are not listed are hidden.
+
+- No `?route=` params → all routes are shown (default behaviour).
+- `?route=1&route=2` → only routes 1 and 2 are rendered.
+- Entering the "Create route" or "Finish route" flow automatically strips any `route` params from the URL, restoring the default "show all" behaviour.
 
 ## Configuration
 
