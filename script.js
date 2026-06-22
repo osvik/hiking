@@ -55,6 +55,7 @@
   const menuCompass = document.getElementById('menuCompass');
   const menuCreateRoute = document.getElementById('menuCreateRoute');
   const menuFinishRoute = document.getElementById('menuFinishRoute');
+  const menuAdmin = document.getElementById('menuAdmin');
 
   let modalResolve = null;
   let modalReject = null;
@@ -642,6 +643,10 @@
   menuFinishRoute.addEventListener('click', function() {
     menuDropdown.classList.remove('open');
     handleFinishRoute();
+  });
+
+  menuAdmin.addEventListener('click', function() {
+    window.location = 'admin.html';
   });
 
   centerBtn.addEventListener('click', function() {

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Admin Routes</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f2f2f7;
+      overflow-y: auto;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .menu-controls {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .map-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background 0.15s;
+    }
+
+    .map-btn:active {
+      background: #e0e0e0;
+    }
+
+    .map-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: #333;
+      pointer-events: none;
+    }
+
+    .menu-dropdown {
+      position: fixed;
+      top: 68px;
+      right: 16px;
+      z-index: 1001;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      overflow: hidden;
+      min-width: 150px;
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .menu-dropdown.open {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .menu-item {
+      display: block;
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+    }
+
+    .menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .menu-item:active {
+      background: #e0e0e0;
+    }
+
+    .menu-item.active {
+      color: #007aff;
+      font-weight: 600;
+    }
+
+    .page-header {
+      padding: 28px 20px 16px;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #111;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .route-list {
+      padding: 0 16px 40px;
+    }
+
+    .route-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .route-color {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1.5px solid rgba(0,0,0,0.1);
+    }
+
+    .route-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .route-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .route-id {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    .route-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s;
+    }
+
+    .action-btn-edit {
+      background: #e8f0fe;
+    }
+
+    .action-btn-edit:active {
+      background: #d0e0fc;
+    }
+
+    .action-btn-delete {
+      background: #fde8e8;
+    }
+
+    .action-btn-delete:active {
+      background: #fcd0d0;
+    }
+
+    .action-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .action-btn-edit svg {
+      fill: #007aff;
+    }
+
+    .action-btn-delete svg {
+      fill: #e53935;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+      font-size: 15px;
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+      font-size: 15px;
+    }
+
+    .error-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #e53935;
+      font-size: 15px;
+    }
+
+    /* ----- Modal ----- */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .modal-card {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 320px;
+      width: 90%;
+      padding: 24px 20px 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #111;
+    }
+
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .modal-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    .modal-field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .modal-field input:focus {
+      border-color: #007aff;
+    }
+
+    .modal-field input[type="color"] {
+      width: 48px;
+      height: 48px;
+      padding: 2px;
+      border-radius: 50%;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      border: 2px solid #ccc;
+      background: none;
+    }
+
+    .modal-field input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    .modal-field input[type="color"]::-webkit-color-swatch {
+      border-radius: 50%;
+      border: none;
+    }
+
+    .modal-field input[type="color"]::-moz-color-swatch {
+      border-radius: 50%;
+      border: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .modal-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .modal-btn-cancel {
+      background: #e5e5ea;
+      color: #333;
+    }
+
+    .modal-btn-cancel:active {
+      background: #d1d1d6;
+    }
+
+    .modal-btn-submit {
+      background: #007aff;
+      color: #fff;
+    }
+
+    .modal-btn-submit:active {
+      background: #0066d6;
+    }
+
+    .modal-btn-danger {
+      background: #e53935;
+      color: #fff;
+    }
+
+    .modal-btn-danger:active {
+      background: #c62828;
+    }
+
+    .modal-message {
+      font-size: 15px;
+      color: #333;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <div class="page-title">Routes</div>
+    <div class="page-subtitle" id="subtitle">Loading...</div>
+  </div>
+
+  <div class="route-list" id="routeList">
+    <div class="loading-state">Loading routes...</div>
+  </div>
+
+  <div class="menu-controls">
+    <button class="map-btn" id="menuBtn" aria-label="Menu" title="Menu">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="2" rx="1"/><rect x="3" y="11" width="18" height="2" rx="1"/><rect x="3" y="18" width="18" height="2" rx="1"/></svg>
+    </button>
+  </div>
+
+  <div class="menu-dropdown" id="menuDropdown">
+    <a class="menu-item" href="index.html">Map</a>
+    <a class="menu-item" href="compass.html">Compass</a>
+    <div class="menu-item active" id="menuAdmin">Admin Routes</div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay" style="display:none">
+    <div class="modal-card">
+      <h2 class="modal-title" id="modalTitle"></h2>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
+        <button class="modal-btn modal-btn-submit" id="modalSubmit">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var modalOverlay = document.getElementById('modalOverlay');
+      var modalTitle = document.getElementById('modalTitle');
+      var modalBody = document.getElementById('modalBody');
+      var modalCancel = document.getElementById('modalCancel');
+      var modalSubmit = document.getElementById('modalSubmit');
+      var modalResolve = null;
+      var modalReject = null;
+
+      var menuBtn = document.getElementById('menuBtn');
+      var menuDropdown = document.getElementById('menuDropdown');
+      var menuAdmin = document.getElementById('menuAdmin');
+      var routeList = document.getElementById('routeList');
+      var subtitle = document.getElementById('subtitle');
+
+      var routes = [];
+
+      function getApiKey() {
+        return localStorage.getItem('api_key') || null;
+      }
+
+      function setApiKey(key) {
+        localStorage.setItem('api_key', key);
+      }
+
+      function promptForApiKey() {
+        return showModal({
+          title: 'API Key Required',
+          fields: [{ id: 'api_key', label: 'Enter your API key', type: 'text', required: true }]
+        }).then(function (vals) {
+          setApiKey(vals.api_key);
+          return vals.api_key;
+        });
+      }
+
+      function apiCall(action, params) {
+        var url = 'api.php?action=' + encodeURIComponent(action);
+        Object.keys(params).forEach(function (k) {
+          if (params[k] !== null && params[k] !== undefined) {
+            url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+          }
+        });
+        return fetch(url).then(function (res) {
+          return res.text().then(function (text) {
+            var data;
+            try {
+              data = JSON.parse(text);
+            } catch (e) {
+              throw new Error('Server returned non-JSON response (HTTP ' + res.status + '). Raw start: ' + text.substring(0, 200));
+            }
+            if (!data.success) {
+              throw new Error(data.error || 'API error');
+            }
+            return data;
+          });
+        });
+      }
+
+      function showModal(opts) {
+        var title = opts.title;
+        var fields = opts.fields || [];
+
+        modalTitle.textContent = title;
+        modalBody.innerHTML = '';
+
+        if (opts.message) {
+          var msgP = document.createElement('p');
+          msgP.className = 'modal-message';
+          msgP.textContent = opts.message;
+          modalBody.appendChild(msgP);
+        }
+
+        fields.forEach(function (f) {
+          var div = document.createElement('div');
+          div.className = 'modal-field';
+
+          var label = document.createElement('label');
+          label.textContent = f.label;
+          label.setAttribute('for', 'modalField_' + f.id);
+          div.appendChild(label);
+
+          var input = document.createElement('input');
+          input.type = f.type || 'text';
+          input.id = 'modalField_' + f.id;
+          input.required = !!f.required;
+          if (f.placeholder) input.placeholder = f.placeholder;
+          if (f.value !== undefined) input.value = f.value;
+          if (f.type === 'color' && f.value === undefined) input.value = '#007aff';
+          div.appendChild(input);
+
+          modalBody.appendChild(div);
+        });
+
+        if (opts.submitLabel) {
+          modalSubmit.textContent = opts.submitLabel;
+        } else {
+          modalSubmit.textContent = 'OK';
+        }
+
+        if (opts.danger) {
+          modalSubmit.className = 'modal-btn modal-btn-danger';
+        } else {
+          modalSubmit.className = 'modal-btn modal-btn-submit';
+        }
+
+        modalOverlay.style.display = 'flex';
+
+        return new Promise(function (resolve, reject) {
+          modalResolve = function () {
+            var values = {};
+            fields.forEach(function (f) {
+              var input = document.getElementById('modalField_' + f.id);
+              values[f.id] = input.value.trim();
+            });
+            hideModal();
+            resolve(values);
+          };
+          modalReject = function () {
+            hideModal();
+            reject(new Error('Cancelled'));
+          };
+        });
+      }
+
+      function hideModal() {
+        modalOverlay.style.display = 'none';
+        modalResolve = null;
+        modalReject = null;
+      }
+
+      modalCancel.addEventListener('click', function () {
+        if (modalReject) modalReject();
+      });
+
+      modalSubmit.addEventListener('click', function () {
+        if (modalResolve) modalResolve();
+      });
+
+      modalOverlay.addEventListener('click', function (e) {
+        if (e.target === modalOverlay && modalReject) modalReject();
+      });
+
+      function renderRoutes() {
+        if (routes.length === 0) {
+          routeList.innerHTML = '<div class="empty-state">No routes found.</div>';
+          subtitle.textContent = '0 routes';
+          return;
+        }
+
+        subtitle.textContent = routes.length + ' route' + (routes.length !== 1 ? 's' : '');
+        routeList.innerHTML = '';
+
+        routes.forEach(function (route) {
+          var card = document.createElement('div');
+          card.className = 'route-card';
+
+          var colorSwatch = document.createElement('div');
+          colorSwatch.className = 'route-color';
+          colorSwatch.style.backgroundColor = route.color;
+
+          var info = document.createElement('div');
+          info.className = 'route-info';
+
+          var nameEl = document.createElement('div');
+          nameEl.className = 'route-name';
+          nameEl.textContent = route.name;
+
+          var idEl = document.createElement('div');
+          idEl.className = 'route-id';
+          idEl.textContent = 'ID: ' + route.id + ' · ' + (route.points ? route.points.length : 0) + ' points';
+
+          info.appendChild(nameEl);
+          info.appendChild(idEl);
+
+          var actions = document.createElement('div');
+          actions.className = 'route-actions';
+
+          var editBtn = document.createElement('button');
+          editBtn.className = 'action-btn action-btn-edit';
+          editBtn.title = 'Edit route';
+          editBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+          editBtn.addEventListener('click', function () {
+            handleEditRoute(route);
+          });
+
+          var deleteBtn = document.createElement('button');
+          deleteBtn.className = 'action-btn action-btn-delete';
+          deleteBtn.title = 'Delete route';
+          deleteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+          deleteBtn.addEventListener('click', function () {
+            handleDeleteRoute(route);
+          });
+
+          actions.appendChild(editBtn);
+          actions.appendChild(deleteBtn);
+          card.appendChild(colorSwatch);
+          card.appendChild(info);
+          card.appendChild(actions);
+          routeList.appendChild(card);
+        });
+      }
+
+      function loadRoutes() {
+        apiCall('get_routes', {}).then(function (res) {
+          routes = res.data || [];
+          renderRoutes();
+        }).catch(function (err) {
+          routeList.innerHTML = '<div class="error-state">' + err.message + '</div>';
+          subtitle.textContent = 'Error';
+        });
+      }
+
+      function handleEditRoute(route) {
+        showModal({
+          title: 'Edit Route',
+          fields: [
+            { id: 'name', label: 'Route Name', type: 'text', required: true, value: route.name },
+            { id: 'color', label: 'Color', type: 'color', required: true, value: route.color }
+          ]
+        }).then(function (vals) {
+          var key = getApiKey();
+          return apiCall('edit_route', {
+            route_id: route.id,
+            name: vals.name,
+            color: vals.color,
+            api_key: key
+          }).then(function () {
+            route.name = vals.name;
+            route.color = vals.color;
+            renderRoutes();
+          });
+        }).catch(function (err) {
+          if (err.message !== 'Cancelled') {
+            if (err.message.indexOf('api_key') !== -1) {
+              localStorage.removeItem('api_key');
+              alert('Invalid API key. Please try again.');
+            } else {
+              alert(err.message);
+            }
+          }
+        });
+      }
+
+      function handleDeleteRoute(route) {
+        showModal({
+          title: 'Delete Route',
+          message: 'Are you sure you want to delete "' + route.name + '" and all its points? This cannot be undone.',
+          fields: [],
+          submitLabel: 'Delete',
+          danger: true
+        }).then(function () {
+          var key = getApiKey();
+          return apiCall('delete_route', {
+            route_id: route.id,
+            api_key: key
+          }).then(function () {
+            routes = routes.filter(function (r) { return r.id !== route.id; });
+            renderRoutes();
+          });
+        }).catch(function (err) {
+          if (err.message !== 'Cancelled') {
+            if (err.message.indexOf('api_key') !== -1) {
+              localStorage.removeItem('api_key');
+              alert('Invalid API key. Please try again.');
+            } else {
+              alert(err.message);
+            }
+          }
+        });
+      }
+
+      function authAndLoad() {
+        var key = getApiKey();
+        if (key) {
+          loadRoutes();
+        } else {
+          promptForApiKey().then(function () {
+            loadRoutes();
+          }).catch(function () {
+            routeList.innerHTML = '<div class="error-state">API key is required to manage routes.</div>';
+            subtitle.textContent = 'Unauthorized';
+          });
+        }
+      }
+
+      menuBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        menuDropdown.classList.toggle('open');
+      });
+
+      document.addEventListener('click', function () {
+        menuDropdown.classList.remove('open');
+      });
+
+      menuDropdown.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+
+      menuAdmin.addEventListener('click', function () {
+        menuDropdown.classList.remove('open');
+      });
+
+      authAndLoad();
+    })();
+  </script>
+</body>
+</html>

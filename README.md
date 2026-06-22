@@ -12,6 +12,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Create hiking routes by adding GPS points on the map
 - Routes persist in SQLite and reload on page load
 - Filter displayed routes via `?route=` URL parameters
+- Admin page to view, edit, and delete routes
 - Mobile-first design
 
 ## Setup
@@ -27,6 +28,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 |---|---|
 | `index.html` | Map page |
 | `compass.html` | Compass page |
+| `admin.html` | Admin page — manage routes |
 | `style.css` | Shared styles and layout |
 | `script.js` | Map logic and GPS tracking |
 | `config.php` | SQLite database path configuration |
