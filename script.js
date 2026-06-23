@@ -426,6 +426,10 @@
    */
   function handleCreateRoute() {
     clearRouteParams();
+    var url = new URL(window.location);
+    url.searchParams.set('action', 'new');
+    history.replaceState(null, '', url.toString());
+
     var key = getApiKey();
 
     function doCreateRoute(k) {
@@ -652,6 +656,7 @@
   function clearRouteParams() {
     var url = new URL(window.location);
     url.searchParams.delete('route');
+    url.searchParams.delete('action');
     history.replaceState(null, '', url.toString());
   }
 
@@ -717,4 +722,8 @@
   startTracking();
   restoreEditingRoute();
   loadAllRoutes(getRouteParamsFromURL());
+
+  if (new URLSearchParams(window.location.search).get('action') === 'new') {
+    handleCreateRoute();
+  }
 })();
