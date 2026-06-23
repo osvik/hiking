@@ -33,10 +33,10 @@
   let trackingId;
 
   /** @type {number} Current zoom level, kept in sync with map.getZoom(). */
-  let currentZoom = DEFAULT_ZOOM;
+  let currentZoom = (getMapParamsFromURL() || {}).zoom || DEFAULT_ZOOM;
 
   /** @type {boolean} Whether the map is actively following the user. */
-  let followingUser = true;
+  let followingUser;
 
   const badgeEl = document.getElementById('locationBadge');
   const centerBtn = document.getElementById('centerBtn');
@@ -65,6 +65,29 @@
   let routeMarkers = [];
 
   /**
+   * Reads latitude, longitude and zoom from URL query parameters.
+   *
+   * @returns {{coords: [number,number], zoom: number}?} Parsed coordinates
+   *   and zoom, or null if URL params are missing or invalid.
+   */
+  function getMapParamsFromURL() {
+    var params = new URLSearchParams(window.location.search);
+    var lat = parseFloat(params.get('lat'));
+    var lng = parseFloat(params.get('long'));
+    var z = parseInt(params.get('z'), 10);
+    if (isNaN(lat) || isNaN(lng)) return null;
+    return {
+      coords: [lat, lng],
+      zoom: isNaN(z) ? DEFAULT_ZOOM : Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z)),
+    };
+  }
+
+  /** @type {{coords: [number,number], zoom: number}?} Map overrides from URL params. */
+  const urlMapParams = getMapParamsFromURL();
+
+  followingUser = !urlMapParams;
+
+  /**
    * Initialises the Leaflet map with OpenStreetMap tiles.
    *
    * Disables the default zoom control and minimised attribution.
@@ -72,10 +95,13 @@
    * `movestart` to detect manual panning (which stops follow mode).
    */
   function initMap() {
+    var coords = urlMapParams ? urlMapParams.coords : DEFAULT_COORDS;
+    var zoom = urlMapParams ? urlMapParams.zoom : DEFAULT_ZOOM;
+
     map = L.map('map', {
       zoomControl: false,
       attributionControl: false,
-    }).setView(DEFAULT_COORDS, DEFAULT_ZOOM);
+    }).setView(coords, zoom);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -203,8 +229,10 @@
 
         if (!map._initialPositionSet) {
           map._initialPositionSet = true;
-          currentZoom = DEFAULT_ZOOM;
-          map.setView([lat, lng], currentZoom);
+          if (!urlMapParams) {
+            currentZoom = DEFAULT_ZOOM;
+            map.setView([lat, lng], currentZoom);
+          }
         }
       },
       function(err) {

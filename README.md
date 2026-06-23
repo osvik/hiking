@@ -12,6 +12,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Create hiking routes by adding GPS points on the map
 - Routes persist in SQLite and reload on page load
 - Filter displayed routes via `?route=` URL parameters
+- Position map via `?lat=`, `?long=`, and `?z=` URL parameters
 - Admin page to view, edit, and delete routes
 - Mobile-first design
 
@@ -157,6 +158,24 @@ This shows only routes 1 and 2 on the map.  Routes whose IDs are not listed are 
 - No `?route=` params → all routes are shown (default behaviour).
 - `?route=1&route=2` → only routes 1 and 2 are rendered.
 - Entering the "Create route" or "Finish route" flow automatically strips any `route` params from the URL, restoring the default "show all" behaviour.
+
+## Positioning the Map by URL
+
+You can set the initial map center and zoom level with `?lat=`, `?long=`, and `?z=` query parameters:
+
+```
+index.html?lat=42.123&long=-3.456&z=14
+```
+
+| Param | Required | Description |
+|---|---|---|
+| `lat` | Yes | Latitude (decimal degrees) |
+| `long` | Yes | Longitude (decimal degrees) |
+| `z` | No | Zoom level (4–18, defaults to 16) |
+
+When these parameters are present, the map opens at the given coordinates and stays there — it does **not** automatically follow the user's GPS position.  The user's blue position marker still appears, and clicking the "center on me" button manually re-enables follow mode.
+
+Without these parameters, the map starts centered on Madrid and jumps to the user's GPS position on the first location lock (default behaviour).
 
 ## Configuration
 
