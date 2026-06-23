@@ -568,9 +568,19 @@
           var card = document.createElement('div');
           card.className = 'route-card';
 
-          var colorSwatch = document.createElement('div');
+          var colorSwatch = document.createElement('a');
           colorSwatch.className = 'route-color';
           colorSwatch.style.backgroundColor = route.color;
+          if (route.points && route.points.length > 0) {
+            var p0 = route.points[0];
+            colorSwatch.href = 'index.html?lat=' + encodeURIComponent(p0.lat)
+              + '&long=' + encodeURIComponent(p0.lon)
+              + '&route=' + encodeURIComponent(route.id);
+            colorSwatch.title = 'Go to route on map';
+          } else {
+            colorSwatch.href = 'index.html?route=' + encodeURIComponent(route.id);
+            colorSwatch.title = 'Go to route on map (no points)';
+          }
 
           var info = document.createElement('div');
           info.className = 'route-info';
