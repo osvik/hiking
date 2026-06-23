@@ -10,6 +10,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Custom zoom controls (+/−)
 - Center-on-user button with follow mode
 - Create hiking routes by adding GPS points on the map
+- **Offline support** — route creation and point recording work without a connection and sync automatically when back online
 - Routes persist in SQLite and reload on page load
 - Filter displayed routes via `?route=` URL parameters
 - Position map via `?lat=`, `?long=`, and `?z=` URL parameters
@@ -32,6 +33,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 | `admin.html` | Admin page — manage routes |
 | `style.css` | Shared styles and layout |
 | `script.js` | Map logic and GPS tracking |
+| `offlineQueue.js` | Offline action queue — caches API calls in localStorage |
 | `config.php` | SQLite database path configuration |
 | `db.php` | Database connection and schema |
 | `api.php` | REST API for routes and points |
@@ -145,6 +147,45 @@ GET api.php?action=edit_point_label&point_id=5&label=NewLabel
 GET api.php?action=remove_point&point_id=5
 ```
 
+## Offline Caching
+
+When the network is unavailable, route creation and point recording continue to work seamlessly.  Failed API calls are automatically queued in the browser's `localStorage` and replayed in order when connectivity returns.
+
+### How it works
+
+1. **API call fails (network error)** → the action is appended to an offline queue in `localStorage` (key `offline_queue`).
+2. **The UI updates immediately** with optimistic data — the route and points appear on the map regardless of connectivity.
+3. **When the browser comes back online** (or on the next page load), the queue is processed in strict FIFO order:
+   - Each item is sent to the server one at a time.
+   - The next item is never sent until the current one is confirmed.
+   - An item is only removed from `localStorage` after the server acknowledges success.
+4. **"Finish this route" events are also cached** so that all points are synced before the route is considered complete.
+
+### Queue item types
+
+| Action | Enqueued when | Effect during processing |
+|---|---|---|
+| `create_route` | Creating a route while offline | Creates the route on the server; maps the temp ID to the real server ID for subsequent items |
+| `add_point` | Adding a point while offline | Sends the point to the correct route on the server |
+| `finish_route` | Finishing a route while offline or with pending items | Client-side only; acts as a marker that all preceding items are synced |
+
+### Temp ID mapping
+
+Routes created offline are assigned a temporary client-generated ID (`temp_<timestamp>_<random>`).  Points recorded while offline reference this temp ID.  When the queued `create_route` is successfully processed by the server, the mapping `temp → real` is stored, and all subsequent queue items have their `route_id` updated to the real server ID before being sent.
+
+### Resilience
+
+- Items are **never dequeued until the server confirms success** — if a network error occurs mid-sync, the queue pauses and retries on the next `online` event.
+- Non-network errors (4xx/5xx) are logged and the item is dequeued to prevent permanently blocking the queue.
+- The queue is flushed on every page load, so closing the browser mid-sync does not lose data.
+
+### localStorage keys
+
+| Key | Content |
+|---|---|
+| `offline_queue` | JSON array of pending action items |
+| `offline_id_map` | JSON object mapping temp route IDs to real server IDs |
+
 ## Filtering Routes by URL
 
 You can limit which routes appear on the map by passing repeated `?route=` query parameters containing route IDs.  For example:
@@ -193,4 +234,5 @@ If the database file does not exist, it is created automatically on the first AP
 - [OpenStreetMap](https://www.openstreetmap.org/) — tile imagery
 - [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API) — GPS access
 - [DeviceOrientation API](https://developer.mozilla.org/en-US/docs/Web/API/DeviceOrientationEvent) — compass heading
+- [localStorage API](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage) — offline queue and state persistence
 - PHP + SQLite — backend API

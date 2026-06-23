@@ -5,6 +5,12 @@
  * using the HTML5 Geolocation API's watchPosition. Provides custom
  * zoom controls and a center-on-user button.
  *
+ * Supports offline route creation and point recording via an
+ * offline queue (`OfflineQueue`).  When the network is unavailable
+ * API calls are cached in localStorage and replayed in order when
+ * the connection returns.  Points appear on the map immediately
+ * (optimistic UI) regardless of connectivity.
+ *
  * @module hiking-assistant
  */
 (function() {
@@ -57,11 +63,16 @@
   const menuFinishRoute = document.getElementById('menuFinishRoute');
   const menuAdmin = document.getElementById('menuAdmin');
 
+  /** @type {?function} Pending modal resolve callback, cleared on dismiss. */
   let modalResolve = null;
+  /** @type {?function} Pending modal reject callback, cleared on dismiss. */
   let modalReject = null;
 
+  /** @type {Object|null} The route currently being edited ({ id, name, color, points }). */
   let currentEditingRoute = null;
+  /** @type {L.Polyline|null} Polyline rendered for the current editing route. */
   let routePolyline = null;
+  /** @type {Array<L.CircleMarker>} Circle markers drawn for the current editing route. */
   let routeMarkers = [];
 
   /**
@@ -305,9 +316,14 @@
    * Builds a query string from the action and params, fetches the API,
    * and throws if the response is not successful JSON.
    *
+   * On network failure the action is enqueued for later retry via
+   * OfflineQueue and the caller receives optimistic mock data so
+   * the UI updates immediately even when offline.
+   *
    * @param {string} action - The API action name (e.g. "create_route").
    * @param {Object} params - Key-value pairs to send as query parameters.
-   * @returns {Promise<Object>} The parsed JSON response body.
+   * @returns {Promise<Object>} The parsed JSON response body, or mock data
+   *   when the request is queued offline.
    */
   function apiCall(action, params) {
     var url = 'api.php?action=' + encodeURIComponent(action);
@@ -329,6 +345,12 @@
         }
         return data;
       });
+    }).catch(function(err) {
+      if (err instanceof TypeError || err.message === 'Failed to fetch' || err.message.indexOf('NetworkError') !== -1 || !navigator.onLine) {
+        console.log('Offline: queuing ' + action + ' for later');
+        return OfflineQueue.enqueue(action, params);
+      }
+      throw err;
     });
   }
 
@@ -544,11 +566,19 @@
   /**
    * Exits editing mode while keeping the drawn route on the map.
    *
-   * Clears editing state and localStorage, hides the Add Point button
-   * and "Finish" menu item, and shows the "Create route" menu item again.
+   * If offline or there are pending queued items the finish is
+   * enqueued so that all preceding items are synced before the
+   * route is considered complete. Client-side state is always
+   * cleaned up immediately for an optimistic UX.
    */
   function handleFinishRoute() {
     clearRouteParams();
+    if (!OfflineQueue.isOnline() || !OfflineQueue.isEmpty()) {
+      OfflineQueue.enqueue('finish_route', {
+        route_id: currentEditingRoute.id,
+        name: currentEditingRoute.name
+      });
+    }
     currentEditingRoute = null;
     routePolyline = null;
     routeMarkers = [];
@@ -718,10 +748,25 @@
     e.stopPropagation();
   });
 
+  /**
+   * When a queued "create_route" item is successfully synced, update the
+   * in-memory editing route ID from the temp value to the real server ID
+   * so that subsequent point additions use the correct ID.
+   */
+  OfflineQueue.onRouteCreated = function(tempId, realId) {
+    if (currentEditingRoute && currentEditingRoute.id === tempId) {
+      currentEditingRoute.id = realId;
+      localStorage.setItem('editing_route', JSON.stringify(currentEditingRoute));
+    }
+  };
+
   initMap();
   startTracking();
   restoreEditingRoute();
   loadAllRoutes(getRouteParamsFromURL());
+
+  // Flush any offline queue items left over from a previous session.
+  OfflineQueue.processQueue();
 
   if (new URLSearchParams(window.location.search).get('action') === 'new') {
     handleCreateRoute();

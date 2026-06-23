@@ -425,13 +425,24 @@
   </div>
 
   <script>
+    /**
+     * Admin Routes — manage hiking routes (view, edit, delete).
+     *
+     * Fetches all routes from the API, renders them as cards, and provides
+     * modal-based edit/delete flows.  Requires an API key persisted in
+     * localStorage for write operations.
+     *
+     * @module admin-routes
+     */
     (function () {
       var modalOverlay = document.getElementById('modalOverlay');
       var modalTitle = document.getElementById('modalTitle');
       var modalBody = document.getElementById('modalBody');
       var modalCancel = document.getElementById('modalCancel');
       var modalSubmit = document.getElementById('modalSubmit');
+      /** @type {?function} Pending modal resolve callback, cleared on dismiss. */
       var modalResolve = null;
+      /** @type {?function} Pending modal reject callback, cleared on dismiss. */
       var modalReject = null;
 
       var menuBtn = document.getElementById('menuBtn');
@@ -440,16 +451,34 @@
       var routeList = document.getElementById('routeList');
       var subtitle = document.getElementById('subtitle');
 
+      /** @type {Array<Object>} Cached list of route objects fetched from the API. */
       var routes = [];
 
+      /**
+       * Reads the API key from localStorage.
+       *
+       * @returns {string|null} The stored API key, or null if not set.
+       */
       function getApiKey() {
         return localStorage.getItem('api_key') || null;
       }
 
+      /**
+       * Persists the API key to localStorage.
+       *
+       * @param {string} key - The API key to store.
+       */
       function setApiKey(key) {
         localStorage.setItem('api_key', key);
       }
 
+      /**
+       * Shows a modal prompting the user for their API key.
+       *
+       * Stores the entered key and returns it.
+       *
+       * @returns {Promise<string>} A promise that resolves with the entered key.
+       */
       function promptForApiKey() {
         return showModal({
           title: 'API Key Required',
@@ -460,6 +489,16 @@
         });
       }
 
+      /**
+       * Calls the backend API and returns the parsed JSON response.
+       *
+       * Builds a query string from the action and params, fetches the API,
+       * and throws if the response is not successful JSON.
+       *
+       * @param {string} action - The API action name (e.g. "edit_route").
+       * @param {Object} params - Key-value pairs to send as query parameters.
+       * @returns {Promise<Object>} The parsed JSON response body.
+       */
       function apiCall(action, params) {
         var url = 'api.php?action=' + encodeURIComponent(action);
         Object.keys(params).forEach(function (k) {
@@ -483,6 +522,21 @@
         });
       }
 
+      /**
+       * Renders a modal dialog and returns a promise for the field values.
+       *
+       * The modal is shown immediately. The promise resolves with an object
+       * mapping field IDs to trimmed string values when the user submits.
+       * It rejects with a "Cancelled" error if the user dismisses the modal.
+       *
+       * @param {Object} opts - Modal configuration.
+       * @param {string} opts.title - Modal heading text.
+       * @param {string} [opts.message] - Optional explanatory text above the fields.
+       * @param {Array<{id: string, label: string, type: string, required: boolean, placeholder?: string, value?: string}>} [opts.fields] - Form fields to render.
+       * @param {string} [opts.submitLabel="OK"] - Custom text for the submit button.
+       * @param {boolean} [opts.danger] - If true, style the submit button as destructive.
+       * @returns {Promise<Object>} Resolves with { fieldId: value, ... } on submit.
+       */
       function showModal(opts) {
         var title = opts.title;
         var fields = opts.fields || [];
@@ -549,6 +603,9 @@
         });
       }
 
+      /**
+       * Hides the modal and clears pending resolve/reject callbacks.
+       */
       function hideModal() {
         modalOverlay.style.display = 'none';
         modalResolve = null;
@@ -567,6 +624,13 @@
         if (e.target === modalOverlay && modalReject) modalReject();
       });
 
+      /**
+       * Renders the route list into the DOM from the cached `routes` array.
+       *
+       * Each route is shown as a card with a colour swatch (linking to the
+       * map), the route name/ID/point count, and edit/delete action buttons.
+       * Displays an empty-state message when no routes exist.
+       */
       function renderRoutes() {
         if (routes.length === 0) {
           routeList.innerHTML = '<div class="empty-state">No routes found.</div>';
@@ -637,6 +701,13 @@
         });
       }
 
+      /**
+       * Fetches all routes from the API and triggers a re-render.
+       *
+       * On success the `routes` array is replaced and the card list
+       * is rebuilt.  On failure an error message is shown in place
+       * of the route list.
+       */
       function loadRoutes() {
         apiCall('get_routes', {}).then(function (res) {
           routes = res.data || [];
@@ -647,6 +718,18 @@
         });
       }
 
+      /**
+       * Opens a modal to edit a route's name and colour.
+       *
+       * Pre-fills the modal fields with the current values.  On submit
+       * the `edit_route` API is called and the in-memory route object
+       * is updated locally before re-rendering.
+       *
+       * @param {Object} route - The route object to edit.
+       * @param {number} route.id - Route ID.
+       * @param {string} route.name - Current route name.
+       * @param {string} route.color - Current route colour.
+       */
       function handleEditRoute(route) {
         showModal({
           title: 'Edit Route',
@@ -678,6 +761,17 @@
         });
       }
 
+      /**
+       * Opens a confirmation modal and deletes the route via the API.
+       *
+       * The modal is styled as a destructive action.  On confirmation
+       * the `delete_route` API is called; the route is removed from
+       * the local array and the list is re-rendered.
+       *
+       * @param {Object} route - The route object to delete.
+       * @param {number} route.id - Route ID.
+       * @param {string} route.name - Route name (shown in the confirmation).
+       */
       function handleDeleteRoute(route) {
         showModal({
           title: 'Delete Route',
@@ -706,6 +800,12 @@
         });
       }
 
+      /**
+       * Checks for a stored API key and either loads routes immediately
+       * or prompts the user for a key first.
+       *
+       * If the prompt is cancelled an "Unauthorized" message is shown.
+       */
       function authAndLoad() {
         var key = getApiKey();
         if (key) {
