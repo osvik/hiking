@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hiking Assistant</title>
+  <title>Hiking Assistant - Satellite</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -20,8 +20,8 @@
   </div>
 
   <div class="menu-dropdown" id="menuDropdown">
-    <div class="menu-item active" id="menuMap">Map</div>
-    <div class="menu-item" id="menuSatellite">Satellite</div>
+    <div class="menu-item" id="menuMap">Map</div>
+    <div class="menu-item active" id="menuSatellite">Satellite</div>
     <div class="menu-item" id="menuCompass">Compass</div>
     <div class="menu-item" id="menuCreateRoute">Create route</div>
     <div class="menu-item" id="menuFinishRoute" style="display:none">Finish this route</div>
@@ -48,6 +48,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>window.TILE_LAYER = 'esri_satellite';</script>
   <script src="offlineQueue.js"></script>
   <script src="script.js"></script>
 </body>

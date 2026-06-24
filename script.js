@@ -58,6 +58,7 @@
   const modalSubmit = document.getElementById('modalSubmit');
   const addPointBtn = document.getElementById('addPointBtn');
   const menuMap = document.getElementById('menuMap');
+  const menuSatellite = document.getElementById('menuSatellite');
   const menuCompass = document.getElementById('menuCompass');
   const menuCreateRoute = document.getElementById('menuCreateRoute');
   const menuFinishRoute = document.getElementById('menuFinishRoute');
@@ -114,9 +115,17 @@
       attributionControl: false,
     }).setView(coords, zoom);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-    }).addTo(map);
+    if (window.TILE_LAYER === 'esri_satellite') {
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      }).addTo(map);
+    } else {
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+    }
 
     L.control.attribution({
       prefix: false,
@@ -695,6 +704,12 @@
   menuMap.addEventListener('click', function() {
     window.location = 'index.html';
   });
+
+  if (menuSatellite) {
+    menuSatellite.addEventListener('click', function() {
+      window.location = 'satellite.html';
+    });
+  }
 
   menuCompass.addEventListener('click', function() {
     window.location = 'compass.html';
