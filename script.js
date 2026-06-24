@@ -474,6 +474,7 @@
         addPointBtn.style.display = 'block';
         menuFinishRoute.style.display = 'block';
         menuCreateRoute.style.display = 'none';
+        clearRouteParams();
       });
     }
 
@@ -492,6 +493,7 @@
       if (err.message !== 'Cancelled') {
         console.error(err);
       }
+      clearRouteParams();
     });
   }
 
