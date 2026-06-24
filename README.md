@@ -6,7 +6,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 
 - Real-time position tracking via `watchPosition()`
 - Compass using the device magnetometer (`DeviceOrientation` API)
-- Navigation menu to switch between map and compass
+- Navigation menu to switch between map, satellite, and compass
 - Custom zoom controls (+/−)
 - Center-on-user button with follow mode
 - Create hiking routes by adding GPS points on the map
@@ -29,6 +29,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 | File | Purpose |
 |---|---|
 | `index.html` | Map page |
+| `satellite.html` | Satellite view (ESRI World Imagery) |
 | `compass.html` | Compass page |
 | `admin.html` | Admin page — manage routes |
 | `style.css` | Shared styles and layout |
@@ -231,7 +232,8 @@ If the database file does not exist, it is created automatically on the first AP
 ## Tech
 
 - [Leaflet.js](https://leafletjs.com/) — interactive maps
-- [OpenStreetMap](https://www.openstreetmap.org/) — tile imagery
+- [OpenStreetMap](https://www.openstreetmap.org/) — map tile imagery
+- [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) — satellite tile imagery
 - [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API) — GPS access
 - [DeviceOrientation API](https://developer.mozilla.org/en-US/docs/Web/API/DeviceOrientationEvent) — compass heading
 - [localStorage API](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage) — offline queue and state persistence
