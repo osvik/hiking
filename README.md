@@ -16,6 +16,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Position map via `?lat=`, `?long=`, and `?z=` URL parameters
 - Admin page to view, edit, and delete routes
 - Mobile-first design
+- Clicking the lat+long box will hive the user a shareable url whith the user's position
 
 ## Setup
 

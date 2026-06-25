@@ -45,6 +45,18 @@
   let followingUser;
 
   const badgeEl = document.getElementById('locationBadge');
+
+  badgeEl.addEventListener('click', function() {
+    if (!map) return;
+    var c = map.getCenter();
+    var z = map.getZoom();
+    var url = new URL(window.location);
+    url.searchParams.set('lat', c.lat.toFixed(5));
+    url.searchParams.set('long', c.lng.toFixed(5));
+    url.searchParams.set('z', z);
+    history.replaceState(null, '', url);
+  });
+
   const centerBtn = document.getElementById('centerBtn');
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
