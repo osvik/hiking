@@ -713,13 +713,24 @@
     history.replaceState(null, '', url.toString());
   }
 
+  function buildViewUrl(base) {
+    if (!map) return base;
+    var c = map.getCenter();
+    var z = map.getZoom();
+    var url = new URL(base, window.location);
+    url.searchParams.set('lat', c.lat.toFixed(5));
+    url.searchParams.set('long', c.lng.toFixed(5));
+    url.searchParams.set('z', z);
+    return url.toString();
+  }
+
   menuMap.addEventListener('click', function() {
-    window.location = 'index.html';
+    window.location = buildViewUrl('index.html');
   });
 
   if (menuSatellite) {
     menuSatellite.addEventListener('click', function() {
-      window.location = 'satellite.html';
+      window.location = buildViewUrl('satellite.html');
     });
   }
 
