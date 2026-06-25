@@ -713,6 +713,13 @@
     history.replaceState(null, '', url.toString());
   }
 
+  /**
+   * Builds a URL for switching between map/satellite views while preserving
+   * the current map centre and zoom level as query parameters.
+   *
+   * @param {string} base - The target page filename (e.g. "index.html").
+   * @returns {string} The full URL with lat, long, and z query params.
+   */
   function buildViewUrl(base) {
     if (!map) return base;
     var c = map.getCenter();
