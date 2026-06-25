@@ -48,7 +48,7 @@
 
   badgeEl.addEventListener('click', function() {
     if (!map) return;
-    var c = map.getCenter();
+    var c = userMarker ? userMarker.getLatLng() : map.getCenter();
     var z = map.getZoom();
     var url = new URL(window.location);
     url.searchParams.set('lat', c.lat.toFixed(5));
@@ -759,6 +759,12 @@
     followingUser = true;
     updateCenterButtonStyle();
     map.flyTo(latlng, currentZoom, { duration: 0.6 });
+
+    var url = new URL(window.location);
+    url.searchParams.delete('lat');
+    url.searchParams.delete('long');
+    url.searchParams.delete('z');
+    history.replaceState(null, '', url.toString());
   });
 
   zoomInBtn.addEventListener('click', function() {
