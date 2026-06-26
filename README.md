@@ -33,7 +33,8 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 | `compass.html` | Compass page |
 | `admin.html` | Admin page — manage routes |
 | `style.css` | Shared styles and layout |
-| `script.js` | Map logic and GPS tracking |
+| `map.js` | Map core, GPS tracking, URL parameter sync, and navigation |
+| `routes.js` | Route editing, API communication, and modal dialogs |
 | `offlineQueue.js` | Offline action queue — caches API calls in localStorage |
 | `config.php` | SQLite database path configuration |
 | `db.php` | Database connection and schema |
