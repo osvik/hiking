@@ -219,6 +219,60 @@ switch ($action) {
         $db->prepare($sql)->execute($params);
         jsonResponse(['success' => true, 'message' => 'Route updated']);
 
+    case 'share_location':
+        $nickname = trim($_GET['nickname'] ?? '');
+        $lat      = $_GET['lat'] ?? null;
+        $lon      = $_GET['lon'] ?? null;
+
+        if ($nickname === '' || mb_strlen($nickname) > 15) {
+            errorResponse('nickname is required and must be 15 chars or fewer');
+        }
+        if ($lat === null || $lon === null || !is_numeric($lat) || !is_numeric($lon)) {
+            errorResponse('lat and lon are required and must be numeric');
+        }
+
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        if (($ip === '' || $ip === '::1') && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ip = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
+        }
+
+        $now = time();
+
+        $upsert = $db->prepare('
+            INSERT INTO shared_locations (nickname, lat, lon, updated_at, ip)
+            VALUES (:nickname, :lat, :lon, :time, :ip)
+            ON CONFLICT(nickname) DO UPDATE SET
+                lat = excluded.lat,
+                lon = excluded.lon,
+                updated_at = excluded.updated_at,
+                ip = excluded.ip
+        ');
+        $upsert->execute([
+            'nickname' => $nickname,
+            'lat'      => (float) $lat,
+            'lon'      => (float) $lon,
+            'time'     => $now,
+            'ip'       => $ip,
+        ]);
+
+        $cutoff = $now - SHARE_TIMEOUT_MINUTES * 60;
+        $db->prepare('DELETE FROM shared_locations WHERE updated_at < :cutoff')
+           ->execute(['cutoff' => $cutoff]);
+
+        $rows = $db->query('SELECT nickname, lat, lon, updated_at FROM shared_locations')
+                   ->fetchAll(PDO::FETCH_ASSOC);
+
+        $users = array_map(function ($r) {
+            return [
+                'nickname'    => $r['nickname'],
+                'lat'         => (float) $r['lat'],
+                'lon'         => (float) $r['lon'],
+                'updated_at'  => (int) $r['updated_at'],
+            ];
+        }, $rows);
+
+        jsonResponse(['success' => true, 'data' => $users]);
+
     default:
         errorResponse('Unknown action: ' . $action);
 }

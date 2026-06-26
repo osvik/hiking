@@ -30,6 +30,16 @@ function getDB(): PDO
                 FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
             )
         ");
+
+        $db->exec("
+            CREATE TABLE IF NOT EXISTS shared_locations (
+                nickname   TEXT PRIMARY KEY,
+                lat        REAL NOT NULL,
+                lon        REAL NOT NULL,
+                updated_at INTEGER NOT NULL,
+                ip         TEXT
+            )
+        ");
     }
     return $db;
 }

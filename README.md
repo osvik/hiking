@@ -15,6 +15,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Filter displayed routes via `?route=` URL parameters
 - Position map via `?lat=`, `?long=`, and `?z=` URL parameters
 - Admin page to view, edit, and delete routes
+- **Location sharing** — share your position with other hikers and see everyone else who is sharing on the map (gated: you must share your own to see others)
 - Mobile-first design
 
 ## Setup
@@ -157,6 +158,45 @@ GET api.php?action=edit_point_label&point_id=5&label=NewLabel
 GET api.php?action=remove_point&point_id=5
 ```
 
+#### Share location
+
+```
+GET api.php?action=share_location&nickname=MountainFox&lat=42.123&lon=-3.456
+```
+
+A **public** endpoint — no `api_key` required. Sharing is gated by "you must
+share your own location to see others", not by a key.
+
+Records (or updates) the caller's last known location and returns the last
+known location of **all** known users. In the process it deletes every user
+that was not updated within the last `SHARE_TIMEOUT_MINUTES` minutes
+(default 10). There is no explicit delete endpoint — turning sharing off
+just stops polling, and the server prunes the user after the timeout.
+
+| Param | Required | Description |
+|---|---|---|
+| `nickname` | Yes | Unique identifier, 1–15 chars (trimmed) |
+| `lat` | Yes | Latitude (numeric) |
+| `lon` | Yes | Longitude (numeric) |
+
+The caller's IP is captured for audit only (`REMOTE_ADDR`, falling back to
+the first `X-Forwarded-For` value) and is **never** returned in the response.
+
+Response shape:
+
+```json
+{
+  "success": true,
+  "data": [
+    { "nickname": "MountainFox", "lat": 42.123, "lon": -3.456, "updated_at": 1700000000 }
+  ]
+}
+```
+
+The caller's own entry is included in the response; the UI skips rendering
+self to avoid overlapping the blue GPS dot. Nickname collisions resolve to
+**last writer wins** (upsert).
+
 ## Offline Caching
 
 When the network is unavailable, route creation and point recording continue to work seamlessly.  Failed API calls are automatically queued in the browser's `localStorage` and replayed in order when connectivity returns.
@@ -197,6 +237,7 @@ Routes created offline are assigned a temporary client-generated ID (`temp_<time
 | `offline_id_map` | JSON object mapping temp route IDs to real server IDs |
 | `api_key` | API key entered by the user (shared by map, route editing, and admin pages) |
 | `editing_route` | JSON snapshot of the route currently being edited, so the in-progress route survives page reloads |
+| `sharing_nickname` | Current sharing nickname; removed when sharing is turned off (see [Location Sharing](#location-sharing)) |
 
 ## Filtering Routes by URL
 
@@ -253,6 +294,36 @@ define('DB_PATH', __DIR__ . '/hiking.db');
 ```
 
 If the database file does not exist, it is created automatically on the first API call.
+
+The shared-location pruning timeout is also configurable (in minutes; users
+not updated within this window are deleted on each `share_location` call):
+
+```php
+define('SHARE_TIMEOUT_MINUTES', 10);
+```
+
+## Location Sharing
+
+Hikers can share their live location with others from the map's hamburger menu.
+The "Share location" toggle appears on both `index.html` and `satellite.html`
+(the logic lives in `map.js`).
+
+- **Off by default.** Toggling it on prompts for a nickname (1–15 chars), which
+  is stored in `localStorage` under `sharing_nickname`.
+- **Share-to-see**: you must share your own location to see who else is sharing.
+- While sharing, a small red "Sharing · &lt;nickname&gt;" label appears below the
+  location badge in the top-left.
+- Your location is sent to the server immediately on enable, then every 30
+  seconds. Because the interval is anchored to each hiker's own first-share
+  moment, requests are naturally staggered rather than firing globally at 0/30.
+- Other hikers appear as a person icon with a nickname bubble above them. Your
+  own marker is not duplicated.
+- Toggling sharing off clears the nickname from `localStorage`, hides the label,
+  and removes the other-user markers. No server call is made — the server prunes
+  you automatically after `SHARE_TIMEOUT_MINUTES` of inactivity, so a hiker who
+  stops checking the map reappears on the next check until they explicitly stop.
+- Reloads and switching between Map ↔ Satellite preserve the sharing state via
+  the stored nickname.
 
 ## Tech
 

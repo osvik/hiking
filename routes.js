@@ -483,4 +483,4 @@ OfflineQueue.onRouteCreated = function(tempId, realId) {
   }
 };
 
-export { handleCreateRoute, handleFinishRoute, handleAddPoint, loadAllRoutes, restoreEditingRoute, getRouteParamsFromURL };
+export { handleCreateRoute, handleFinishRoute, handleAddPoint, loadAllRoutes, restoreEditingRoute, getRouteParamsFromURL, showModal };

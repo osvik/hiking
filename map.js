@@ -7,7 +7,7 @@
  *
  * @module map
  */
-import { handleCreateRoute, handleFinishRoute, handleAddPoint, loadAllRoutes, restoreEditingRoute, getRouteParamsFromURL } from './routes.js';
+import { handleCreateRoute, handleFinishRoute, handleAddPoint, loadAllRoutes, restoreEditingRoute, getRouteParamsFromURL, showModal } from './routes.js';
 
 /** @constant {[number, number]} Default map center (Madrid) before GPS lock. */
 const DEFAULT_COORDS = [40.4168, -3.7038];
@@ -39,6 +39,21 @@ let currentZoom;
 /** @type {boolean} Whether the map is actively following the user. */
 let followingUser;
 
+/** @type {boolean} Whether location sharing is currently active. */
+let sharingEnabled = false;
+
+/** @type {string|null} Nickname used for sharing, null when not sharing. */
+let sharingNickname = null;
+
+/** @type {number|null} setInterval handle for periodic share pings. */
+let shareIntervalId = null;
+
+/** @type {number|null} Timestamp (ms) of the first share in this session. */
+let firstShareTime = null;
+
+/** @type {L.LayerGroup} Layer group holding other users' shared-location markers. */
+let sharedMarkersLayer = L.layerGroup();
+
 const badgeEl = document.getElementById('locationBadge');
 
 const centerBtn = document.getElementById('centerBtn');
@@ -52,6 +67,8 @@ const menuCompass = document.getElementById('menuCompass');
 const menuCreateRoute = document.getElementById('menuCreateRoute');
 const menuFinishRoute = document.getElementById('menuFinishRoute');
 const menuAdmin = document.getElementById('menuAdmin');
+const menuShareLocation = document.getElementById('menuShareLocation');
+const sharingLabel = document.getElementById('sharingLabel');
 
 /**
  * Reads latitude, longitude and zoom from URL query parameters.
@@ -107,6 +124,8 @@ function initMap() {
     zoomControl: false,
     attributionControl: false,
   }).setView(coords, zoom);
+
+  sharedMarkersLayer.addTo(map);
 
   if (window.TILE_LAYER === 'esri_satellite') {
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -303,6 +322,161 @@ function buildViewUrl(base) {
   return url.toString();
 }
 
+/**
+ * Sends the user's current position to the share_location API endpoint
+ * and re-renders all shared users on the map.
+ *
+ * Requires a GPS lock (userMarker). If there is no lock yet the tick
+ * is skipped — the interval keeps retrying on later ticks. Shares are
+ * sent via a direct fetch (NOT apiCall) so they are never queued
+ * offline; a stale queued location would be useless. On network error
+ * we log and continue silently.
+ */
+function sendShare() {
+  if (!sharingEnabled || !sharingNickname) return;
+  if (!userMarker) return;
+
+  var latlng = userMarker.getLatLng();
+  var url = 'api.php?action=share_location'
+    + '&nickname=' + encodeURIComponent(sharingNickname)
+    + '&lat=' + encodeURIComponent(latlng.lat)
+    + '&lon=' + encodeURIComponent(latlng.lng);
+
+  fetch(url).then(function(res) {
+    return res.text().then(function(text) {
+      var data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.log('share_location: non-JSON response, skipping tick');
+        return null;
+      }
+      if (!data || !data.success) {
+        console.log('share_location: ' + (data && data.error ? data.error : 'error'));
+        return null;
+      }
+      return data;
+    });
+  }).then(function(data) {
+    if (data) renderSharedUsers(data.data || []);
+  }).catch(function(err) {
+    console.log('share_location: network error, will retry next tick (' + err.message + ')');
+  });
+}
+
+/**
+ * Renders all shared users as person-icon markers with a nickname bubble.
+ *
+ * Clears the shared-markers layer first, then adds a marker for every
+ * user except the current user (self is skipped to avoid overlapping
+ * the blue GPS dot).
+ *
+ * @param {Array<{nickname:string,lat:number,lon:number,updated_at:number}>} users
+ */
+function renderSharedUsers(users) {
+  sharedMarkersLayer.clearLayers();
+  users.forEach(function(u) {
+    if (u.nickname === sharingNickname) return;
+    var icon = L.divIcon({
+      className: 'shared-user-marker',
+      html: '<svg width="32" height="32" viewBox="0 0 24 24">'
+          + '<circle cx="12" cy="8" r="4" fill="#ff3b30" stroke="#fff" stroke-width="1.5"/>'
+          + '<path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="#ff3b30" stroke="#fff" stroke-width="1.5"/>'
+          + '</svg>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+    var marker = L.marker([u.lat, u.lon], { icon: icon }).addTo(sharedMarkersLayer);
+    marker.bindTooltip(u.nickname, {
+      permanent: true,
+      direction: 'top',
+      offset: [0, -14],
+      className: 'shared-user-bubble'
+    });
+  });
+}
+
+/**
+ * Enables location sharing: prompts for a nickname, persists it,
+ * shows the sharing label, and starts the periodic share pings.
+ */
+function startSharing() {
+  menuDropdown.classList.remove('open');
+  showModal({
+    title: 'Share Location',
+    fields: [
+      { id: 'nickname', label: 'Nickname (max 15 chars)', type: 'text', required: true, placeholder: 'e.g. MountainFox' }
+    ]
+  }).then(function(vals) {
+    var nick = vals.nickname;
+    if (nick.length > 15) {
+      alert('Nickname must be 15 characters or fewer.');
+      return;
+    }
+    sharingNickname = nick;
+    sharingEnabled = true;
+    localStorage.setItem('sharing_nickname', nick);
+    sharingLabel.textContent = 'Sharing · ' + nick;
+    sharingLabel.style.display = 'block';
+    menuShareLocation.textContent = 'Stop sharing';
+    menuShareLocation.classList.add('sharing-on');
+    firstShareTime = Date.now();
+    sendShare();
+    shareIntervalId = setInterval(sendShare, 30000);
+  }).catch(function() {
+    // cancelled — do nothing
+  });
+}
+
+/**
+ * Disables location sharing: stops the periodic pings, clears state,
+ * hides the label, and removes all shared-user markers.
+ */
+function stopSharing() {
+  menuDropdown.classList.remove('open');
+  if (shareIntervalId != null) {
+    clearInterval(shareIntervalId);
+    shareIntervalId = null;
+  }
+  sharingEnabled = false;
+  sharingNickname = null;
+  localStorage.removeItem('sharing_nickname');
+  sharingLabel.style.display = 'none';
+  menuShareLocation.textContent = 'Share location';
+  menuShareLocation.classList.remove('sharing-on');
+  if (sharedMarkersLayer) sharedMarkersLayer.clearLayers();
+  firstShareTime = null;
+}
+
+/**
+ * Handles the "Share location" menu click: starts or stops sharing.
+ */
+function handleShareLocation() {
+  if (sharingEnabled) {
+    stopSharing();
+  } else {
+    startSharing();
+  }
+}
+
+/**
+ * Resumes sharing from a previously stored nickname (e.g. after a page
+ * reload or when switching between map/satellite views).
+ */
+function restoreSharing() {
+  var saved = localStorage.getItem('sharing_nickname');
+  if (!saved) return;
+  sharingNickname = saved;
+  sharingEnabled = true;
+  sharingLabel.textContent = 'Sharing · ' + saved;
+  sharingLabel.style.display = 'block';
+  menuShareLocation.textContent = 'Stop sharing';
+  menuShareLocation.classList.add('sharing-on');
+  firstShareTime = Date.now();
+  sendShare();
+  shareIntervalId = setInterval(sendShare, 30000);
+}
+
 menuMap.addEventListener('click', function() {
   window.location = buildViewUrl('index.html');
 });
@@ -316,6 +490,8 @@ if (menuSatellite) {
 menuCompass.addEventListener('click', function() {
   window.location = 'compass.html';
 });
+
+menuShareLocation.addEventListener('click', handleShareLocation);
 
 menuCreateRoute.addEventListener('click', function() {
   menuDropdown.classList.remove('open');
@@ -377,6 +553,7 @@ initMap();
 startTracking();
 restoreEditingRoute();
 loadAllRoutes(getRouteParamsFromURL());
+restoreSharing();
 
 OfflineQueue.processQueue();
 
