@@ -170,8 +170,9 @@ share your own location to see others", not by a key.
 Records (or updates) the caller's last known location and returns the last
 known location of **all** known users. In the process it deletes every user
 that was not updated within the last `SHARE_TIMEOUT_MINUTES` minutes
-(default 10). There is no explicit delete endpoint — turning sharing off
-just stops polling, and the server prunes the user after the timeout.
+(default 10). This stale-prune covers hikers who went offline or closed the
+page. A hiker who **deliberately** stops sharing is removed immediately via
+the `stop_sharing` endpoint (see below).
 
 | Param | Required | Description |
 |---|---|---|
@@ -196,6 +197,21 @@ Response shape:
 The caller's own entry is included in the response; the UI skips rendering
 self to avoid overlapping the blue GPS dot. Nickname collisions resolve to
 **last writer wins** (upsert).
+
+#### Stop sharing
+
+```
+GET api.php?action=stop_sharing&nickname=MountainFox
+```
+
+A **public** endpoint — no `api_key` required. Immediately deletes the
+caller's entry from `shared_locations` so other hikers stop seeing them
+right away (rather than waiting for the `SHARE_TIMEOUT_MINUTES` prune,
+which is meant for offline users, not deliberate stops).
+
+| Param | Required | Description |
+|---|---|---|
+| `nickname` | Yes | The nickname to remove (trimmed) |
 
 ## Offline Caching
 
@@ -319,9 +335,11 @@ The "Share location" toggle appears on both `index.html` and `satellite.html`
 - Other hikers appear as a person icon with a nickname bubble above them. Your
   own marker is not duplicated.
 - Toggling sharing off clears the nickname from `localStorage`, hides the label,
-  and removes the other-user markers. No server call is made — the server prunes
-  you automatically after `SHARE_TIMEOUT_MINUTES` of inactivity, so a hiker who
-  stops checking the map reappears on the next check until they explicitly stop.
+  and removes the other-user markers. It also fires a `stop_sharing` call so the
+  server drops the user immediately — others don't see them for the remaining
+  timeout window. The `SHARE_TIMEOUT_MINUTES` prune only catches hikers who went
+  offline or closed the page without stopping (it's a safety net, not the stop
+  path).
 - Reloads and switching between Map ↔ Satellite preserve the sharing state via
   the stored nickname.
 

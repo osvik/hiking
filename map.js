@@ -429,14 +429,22 @@ function startSharing() {
 }
 
 /**
- * Disables location sharing: stops the periodic pings, clears state,
- * hides the label, and removes all shared-user markers.
+ * Disables location sharing: stops the periodic pings, asks the server to
+ * delete this user immediately, clears state, hides the label, and removes
+ * all shared-user markers. The server call is fire-and-forget (no offline
+ * queue); on network error the server's timeout prune still applies.
  */
 function stopSharing() {
   menuDropdown.classList.remove('open');
   if (shareIntervalId != null) {
     clearInterval(shareIntervalId);
     shareIntervalId = null;
+  }
+  if (sharingNickname) {
+    var url = 'api.php?action=stop_sharing&nickname=' + encodeURIComponent(sharingNickname);
+    fetch(url).catch(function(err) {
+      console.log('stop_sharing: network error, server will prune after timeout (' + err.message + ')');
+    });
   }
   sharingEnabled = false;
   sharingNickname = null;

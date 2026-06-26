@@ -273,6 +273,15 @@ switch ($action) {
 
         jsonResponse(['success' => true, 'data' => $users]);
 
+    case 'stop_sharing':
+        $nickname = trim($_GET['nickname'] ?? '');
+        if ($nickname === '') {
+            errorResponse('nickname is required');
+        }
+        $db->prepare('DELETE FROM shared_locations WHERE nickname = :nickname')
+           ->execute(['nickname' => $nickname]);
+        jsonResponse(['success' => true, 'message' => 'Stopped sharing']);
+
     default:
         errorResponse('Unknown action: ' . $action);
 }
