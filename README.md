@@ -32,7 +32,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 | `satellite.html` | Satellite view (ESRI World Imagery) |
 | `compass.html` | Compass page |
 | `admin.html` | Admin page — manage routes |
-| `style.css` | Shared styles and layout |
+| `style.css` | Shared styles for the map pages (`index.html`, `satellite.html`) |
 | `map.js` | Map core, GPS tracking, URL parameter sync, and navigation |
 | `routes.js` | Route editing, API communication, and modal dialogs |
 | `offlineQueue.js` | Offline action queue — caches API calls in localStorage |
@@ -56,8 +56,15 @@ Read actions (`get_routes`, `get_route`) are public and don't require a key.
 
 Set your API key in `config.php`:
 ```php
-define('API_KEY', 'your-secret-key-here');
+define('API_KEY', 'change-me-to-a-random-secret');
 ```
+
+The client apps obtain the key from the user via a modal prompt on the first
+write action and persist it in the browser's `localStorage` under the key
+`api_key` (`routes.js`, `admin.html`). If a stored key is rejected by the
+server (e.g. it was rotated in `config.php`), the prompt reappears
+automatically. To force a re-prompt, clear the `api_key` entry from the
+browser's localStorage.
 
 ### Response format
 
@@ -130,7 +137,8 @@ GET api.php?action=add_point&route_id=1&lat=42.123&lon=-3.456&label=Summit
 | `lon` | Yes | Longitude |
 | `label` | No | Optional point label |
 
-Points are appended at the end of the route (position is auto-incremented).
+Points are appended at the end of the route — `position` is computed as
+`MAX(position) + 1` for the route at insert time.
 
 #### Edit a point label
 
@@ -187,6 +195,8 @@ Routes created offline are assigned a temporary client-generated ID (`temp_<time
 |---|---|
 | `offline_queue` | JSON array of pending action items |
 | `offline_id_map` | JSON object mapping temp route IDs to real server IDs |
+| `api_key` | API key entered by the user (shared by map, route editing, and admin pages) |
+| `editing_route` | JSON snapshot of the route currently being edited, so the in-progress route survives page reloads |
 
 ## Filtering Routes by URL
 
@@ -219,6 +229,20 @@ index.html?lat=42.123&long=-3.456&z=14
 You can share or bookmark the URL at any time to return to the exact same view.  When loading the map with these parameters, it opens at the given coordinates and does **not** automatically follow the user's GPS position.  The user's blue position marker still appears, and clicking the "center on me" button re-enables follow mode (and updates the URL params to your current location).
 
 Without these parameters, the map starts centered on Madrid and jumps to the user's GPS position on the first location lock (default behaviour).
+
+## Triggering Route Creation by URL
+
+Pass `?action=new` to open the map page and immediately start the
+create-route flow:
+
+```
+index.html?action=new
+```
+
+This is the link used by the **+** button on the admin page
+(`admin.html`). On load, `map.js` detects the parameter and invokes
+`handleCreateRoute()` automatically. Entering the flow also strips any
+existing `?route=` params (see [Filtering Routes by URL](#filtering-routes-by-url)) and sets `?action=new` in the URL while the create modal is open, so the flow resumes correctly after a reload. The param is removed once the route is created or the modal is cancelled.
 
 ## Configuration
 
