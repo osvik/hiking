@@ -95,6 +95,10 @@
     };
   }
 
+  /**
+   * Updates the browser URL query parameters (lat, long, z) to match the
+   * current map centre and zoom level without reloading the page.
+   */
   function updateUrlFromMap() {
     if (!map) return;
     var c = map.getCenter();
