@@ -81,7 +81,6 @@ body {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
-  cursor: pointer;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }

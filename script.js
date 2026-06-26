@@ -46,17 +46,6 @@
 
   const badgeEl = document.getElementById('locationBadge');
 
-  badgeEl.addEventListener('click', function() {
-    if (!map) return;
-    var c = userMarker ? userMarker.getLatLng() : map.getCenter();
-    var z = map.getZoom();
-    var url = new URL(window.location);
-    url.searchParams.set('lat', c.lat.toFixed(5));
-    url.searchParams.set('long', c.lng.toFixed(5));
-    url.searchParams.set('z', z);
-    history.replaceState(null, '', url);
-  });
-
   const centerBtn = document.getElementById('centerBtn');
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
@@ -106,6 +95,17 @@
     };
   }
 
+  function updateUrlFromMap() {
+    if (!map) return;
+    var c = map.getCenter();
+    var z = map.getZoom();
+    var url = new URL(window.location);
+    url.searchParams.set('lat', c.lat.toFixed(5));
+    url.searchParams.set('long', c.lng.toFixed(5));
+    url.searchParams.set('z', z);
+    history.replaceState(null, '', url);
+  }
+
   /** @type {{coords: [number,number], zoom: number}?} Map overrides from URL params. */
   const urlMapParams = getMapParamsFromURL();
 
@@ -151,6 +151,14 @@
     map.on('movestart', function() {
       followingUser = false;
       updateCenterButtonStyle();
+    });
+
+    map.on('moveend', function() {
+      updateUrlFromMap();
+    });
+
+    map.on('zoomend', function() {
+      updateUrlFromMap();
     });
   }
 
@@ -768,9 +776,9 @@
     map.flyTo(latlng, currentZoom, { duration: 0.6 });
 
     var url = new URL(window.location);
-    url.searchParams.delete('lat');
-    url.searchParams.delete('long');
-    url.searchParams.delete('z');
+    url.searchParams.set('lat', latlng.lat.toFixed(5));
+    url.searchParams.set('long', latlng.lng.toFixed(5));
+    url.searchParams.set('z', currentZoom);
     history.replaceState(null, '', url.toString());
   });
 
