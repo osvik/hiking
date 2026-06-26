@@ -590,10 +590,18 @@
         return new Promise(function (resolve, reject) {
           modalResolve = function () {
             var values = {};
+            var firstInvalid = null;
             fields.forEach(function (f) {
               var input = document.getElementById('modalField_' + f.id);
               values[f.id] = input.value.trim();
+              if (f.required && values[f.id] === '' && !firstInvalid) {
+                firstInvalid = input;
+              }
             });
+            if (firstInvalid) {
+              firstInvalid.focus();
+              return;
+            }
             hideModal();
             resolve(values);
           };

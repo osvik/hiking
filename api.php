@@ -61,6 +61,10 @@ switch ($action) {
             errorResponse('route_id, lat, and lon are required');
         }
 
+        if (!is_numeric($lat) || !is_numeric($lon)) {
+            errorResponse('lat and lon must be numeric values');
+        }
+
         $routeStmt = $db->prepare('SELECT id FROM routes WHERE id = :id');
         $routeStmt->execute(['id' => $routeId]);
         if (!$routeStmt->fetch()) {
@@ -68,6 +72,8 @@ switch ($action) {
         }
 
         $maxPos = $db->prepare('SELECT COALESCE(MAX(position), -1) + 1 AS next_pos FROM points WHERE route_id = :route_id');
+
+        $db->beginTransaction();
         $maxPos->execute(['route_id' => $routeId]);
         $position = (int) $maxPos->fetch(PDO::FETCH_ASSOC)['next_pos'];
 
@@ -80,6 +86,7 @@ switch ($action) {
             'position' => $position,
         ]);
         $pointId = (int) $db->lastInsertId();
+        $db->commit();
         jsonResponse(['success' => true, 'data' => ['id' => $pointId, 'route_id' => (int) $routeId, 'lat' => (float) $lat, 'lon' => (float) $lon, 'label' => $label !== '' ? $label : null, 'position' => $position]], 201);
 
     case 'remove_point':

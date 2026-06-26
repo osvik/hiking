@@ -153,10 +153,18 @@ function showModal(opts) {
   return new Promise(function(resolve, reject) {
     modalResolve = function() {
       var values = {};
+      var firstInvalid = null;
       fields.forEach(function(f) {
         var input = document.getElementById('modalField_' + f.id);
         values[f.id] = input.value.trim();
+        if (f.required && values[f.id] === '' && !firstInvalid) {
+          firstInvalid = input;
+        }
       });
+      if (firstInvalid) {
+        firstInvalid.focus();
+        return;
+      }
       hideModal();
       resolve(values);
     };
@@ -268,44 +276,62 @@ function handleAddPoint() {
       { id: 'label', label: 'Label (optional)', type: 'text', required: false, placeholder: 'e.g. Summit' }
     ]
   }).then(function(vals) {
-    var key = getApiKey();
-    return apiCall('add_point', {
-      route_id: currentEditingRoute.id,
-      lat: latlng.lat,
-      lon: latlng.lng,
-      label: vals.label,
-      api_key: key
-    }).then(function(res) {
-      var pt = res.data;
-      currentEditingRoute.points.push(pt);
-      localStorage.setItem('editing_route', JSON.stringify(currentEditingRoute));
+    var label = vals.label;
 
-      var latlngArr = [pt.lat, pt.lon];
+    function doAdd(key) {
+      return apiCall('add_point', {
+        route_id: currentEditingRoute.id,
+        lat: latlng.lat,
+        lon: latlng.lng,
+        label: label,
+        api_key: key
+      }).then(function(res) {
+        var pt = res.data;
+        currentEditingRoute.points.push(pt);
+        localStorage.setItem('editing_route', JSON.stringify(currentEditingRoute));
 
-      if (routePolyline) {
-        routePolyline.addLatLng(latlngArr);
-      } else {
-        routePolyline = L.polyline([latlngArr], {
-          color: currentEditingRoute.color,
-          weight: 4,
-          opacity: 0.8
+        var latlngArr = [pt.lat, pt.lon];
+
+        if (routePolyline) {
+          routePolyline.addLatLng(latlngArr);
+        } else {
+          routePolyline = L.polyline([latlngArr], {
+            color: currentEditingRoute.color,
+            weight: 4,
+            opacity: 0.8
+          }).addTo(map);
+        }
+
+        var marker = L.circleMarker(latlngArr, {
+          radius: 6,
+          fillColor: currentEditingRoute.color,
+          color: '#fff',
+          weight: 2,
+          fillOpacity: 0.9
         }).addTo(map);
+
+        if (pt.label) {
+          marker.bindTooltip(pt.label, { permanent: true, direction: 'top', offset: [0, -10] });
+        }
+
+        routeMarkers.push(marker);
+      });
+    }
+
+    function addWithKeyRetry(key) {
+      if (!key) {
+        return promptForApiKey().then(function(k) { return addWithKeyRetry(k); });
       }
+      return doAdd(key).catch(function(err) {
+        if (err.message.indexOf('api_key') !== -1) {
+          localStorage.removeItem('api_key');
+          return promptForApiKey().then(function(k) { return addWithKeyRetry(k); });
+        }
+        throw err;
+      });
+    }
 
-      var marker = L.circleMarker(latlngArr, {
-        radius: 6,
-        fillColor: currentEditingRoute.color,
-        color: '#fff',
-        weight: 2,
-        fillOpacity: 0.9
-      }).addTo(map);
-
-      if (pt.label) {
-        marker.bindTooltip(pt.label, { permanent: true, direction: 'top', offset: [0, -10] });
-      }
-
-      routeMarkers.push(marker);
-    });
+    return addWithKeyRetry(getApiKey());
   }).catch(function(err) {
     if (err.message !== 'Cancelled') {
       alert(err.message);
@@ -323,7 +349,7 @@ function handleAddPoint() {
  */
 function handleFinishRoute() {
   clearRouteParams();
-  if (!OfflineQueue.isOnline() || !OfflineQueue.isEmpty()) {
+  if (currentEditingRoute && (!OfflineQueue.isOnline() || !OfflineQueue.isEmpty())) {
     OfflineQueue.enqueue('finish_route', {
       route_id: currentEditingRoute.id,
       name: currentEditingRoute.name
