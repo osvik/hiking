@@ -16,7 +16,6 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Position map via `?lat=`, `?long=`, and `?z=` URL parameters
 - Admin page to view, edit, and delete routes
 - Mobile-first design
-- Clicking the lat+long box will hive the user a shareable url whith the user's position
 
 ## Setup
 
@@ -204,7 +203,7 @@ This shows only routes 1 and 2 on the map.  Routes whose IDs are not listed are 
 
 ## Positioning the Map by URL
 
-You can set the initial map center and zoom level with `?lat=`, `?long=`, and `?z=` query parameters:
+The map keeps `?lat=`, `?long=`, and `?z=` query parameters in the URL at all times, reflecting the current map center and zoom level.  They update whenever you pan or zoom the map, and when you click the "center on me" button they update to your GPS position.
 
 ```
 index.html?lat=42.123&long=-3.456&z=14
@@ -216,7 +215,7 @@ index.html?lat=42.123&long=-3.456&z=14
 | `long` | Yes | Longitude (decimal degrees) |
 | `z` | No | Zoom level (4–18, defaults to 16) |
 
-When these parameters are present, the map opens at the given coordinates and stays there — it does **not** automatically follow the user's GPS position.  The user's blue position marker still appears, and clicking the "center on me" button manually re-enables follow mode.
+You can share or bookmark the URL at any time to return to the exact same view.  When loading the map with these parameters, it opens at the given coordinates and does **not** automatically follow the user's GPS position.  The user's blue position marker still appears, and clicking the "center on me" button re-enables follow mode (and updates the URL params to your current location).
 
 Without these parameters, the map starts centered on Madrid and jumps to the user's GPS position on the first location lock (default behaviour).
 
