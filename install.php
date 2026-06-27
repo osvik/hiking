@@ -45,33 +45,38 @@ $phpMinVersion = '7.4.0';
 $requirements = [];
 
 $requirements[] = [
-    'label'  => 'PHP version &ge; ' . $phpMinVersion,
-    'ok'     => version_compare(PHP_VERSION, $phpMinVersion, '>='),
-    'detail' => PHP_VERSION,
+    'label'    => 'PHP version &ge; ' . $phpMinVersion,
+    'ok'       => version_compare(PHP_VERSION, $phpMinVersion, '>='),
+    'detail'   => PHP_VERSION,
+    'blocking' => true,
 ];
 
 $requirements[] = [
-    'label'  => 'PDO extension',
-    'ok'     => extension_loaded('pdo'),
-    'detail' => extension_loaded('pdo') ? 'Loaded' : 'Missing',
+    'label'    => 'PDO extension',
+    'ok'       => extension_loaded('pdo'),
+    'detail'   => extension_loaded('pdo') ? 'Loaded' : 'Missing',
+    'blocking' => true,
 ];
 
 $requirements[] = [
-    'label'  => 'PDO SQLite extension',
-    'ok'     => extension_loaded('pdo_sqlite'),
-    'detail' => extension_loaded('pdo_sqlite') ? 'Loaded' : 'Missing',
+    'label'    => 'PDO SQLite extension',
+    'ok'       => extension_loaded('pdo_sqlite'),
+    'detail'   => extension_loaded('pdo_sqlite') ? 'Loaded' : 'Missing',
+    'blocking' => true,
 ];
 
 $requirements[] = [
-    'label'  => 'JSON extension',
-    'ok'     => extension_loaded('json'),
-    'detail' => extension_loaded('json') ? 'Loaded' : 'Missing',
+    'label'    => 'JSON extension',
+    'ok'       => extension_loaded('json'),
+    'detail'   => extension_loaded('json') ? 'Loaded' : 'Missing',
+    'blocking' => true,
 ];
 
 $requirements[] = [
-    'label'  => 'Directory writable',
-    'ok'     => is_writable(__DIR__),
-    'detail' => is_writable(__DIR__) ? 'Writable' : 'Not writable — cannot create config.php',
+    'label'    => 'Directory writable',
+    'ok'       => is_writable(__DIR__),
+    'detail'   => is_writable(__DIR__) ? 'Writable' : 'Not writable — cannot create config.php',
+    'blocking' => true,
 ];
 
 try {
@@ -82,21 +87,42 @@ try {
     $testDb = null;
     unlink($tmpDbPath);
     $requirements[] = [
-        'label'  => 'SQLite functional',
-        'ok'     => true,
-        'detail' => 'Working',
+        'label'    => 'SQLite functional',
+        'ok'       => true,
+        'detail'   => 'Working',
+        'blocking' => true,
     ];
 } catch (Exception $e) {
     $requirements[] = [
-        'label'  => 'SQLite functional',
-        'ok'     => false,
-        'detail' => $e->getMessage(),
+        'label'    => 'SQLite functional',
+        'ok'       => false,
+        'detail'   => $e->getMessage(),
+        'blocking' => true,
     ];
 }
 
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || ($_SERVER['SERVER_PORT'] ?? null) == 443
+        || ($_SERVER['REQUEST_SCHEME'] ?? '') === 'https'
+        || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+
+$isLocalhost = in_array($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', '::1'], true)
+            || in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', '::1'], true);
+
+$isSecureContext = $isHttps || $isLocalhost;
+
+$requirements[] = [
+    'label'    => 'Secure context (Geolocation API)',
+    'ok'       => $isSecureContext,
+    'detail'   => $isSecureContext
+                    ? ($isHttps ? 'HTTPS detected' : 'localhost — allowed for testing')
+                    : 'HTTPS not detected and host is not localhost — the Geolocation API will be blocked by browsers',
+    'blocking' => false,
+];
+
 $allOk = true;
 foreach ($requirements as $r) {
-    if (!$r['ok']) {
+    if (!$r['ok'] && $r['blocking']) {
         $allOk = false;
         break;
     }
@@ -158,8 +184,9 @@ p{margin-bottom:12px}
 table{width:100%;border-collapse:collapse;margin-bottom:16px}
 th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #eee}
 th{font-weight:600;width:180px}
-.pass{color:#2e7d32;font-weight:600}
-.fail{color:#c62828;font-weight:600}
+ .pass{color:#2e7d32;font-weight:600}
+ .fail{color:#c62828;font-weight:600}
+ .warn{color:#e65100;font-weight:600}
 label{display:block;margin-bottom:4px;font-weight:600}
 input[type="text"],
 input[type="number"]{width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:4px;font-size:14px;margin-bottom:16px}
@@ -183,7 +210,9 @@ button:disabled{background:#9e9e9e;cursor:not-allowed}
 <?php foreach ($requirements as $r): ?>
 <tr>
 <td><?= $r['label'] ?></td>
-<td class="<?= $r['ok'] ? 'pass' : 'fail' ?>"><?= $r['ok'] ? 'OK' : 'FAIL' ?></td>
+<td class="<?= $r['ok'] ? 'pass' : (empty($r['blocking']) ? 'warn' : 'fail') ?>">
+<?= $r['ok'] ? 'OK' : (empty($r['blocking']) ? 'WARN' : 'FAIL') ?>
+</td>
 </tr>
 <?php if (!$r['ok']): ?>
 <tr><td colspan="2" class="detail"><?= htmlspecialchars($r['detail']) ?></td></tr>
