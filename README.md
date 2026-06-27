@@ -4,8 +4,8 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 
 ## Features
 
-- Real-time position tracking via `watchPosition()`
-- Compass using the device magnetometer (`DeviceOrientation` API)
+- Real-time position tracking via `watchPosition()` including altitude when available from GPS
+- Compass using the device magnetometer (`DeviceOrientation` API), plus a live location badge (lat, lon, altitude)
 - Navigation menu to switch between map, satellite, and compass
 - Custom zoom controls (+/−)
 - Center-on-user button with follow mode
@@ -31,10 +31,10 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 |---|---|
 | `index.html` | Map page |
 | `satellite.html` | Satellite view (ESRI World Imagery) |
-| `compass.html` | Compass page |
+| `compass.html` | Compass page (heading + live location badge with altitude) |
 | `admin.html` | Admin page — manage routes |
 | `style.css` | Shared styles for the map pages (`index.html`, `satellite.html`) |
-| `map.js` | Map core, GPS tracking, URL parameter sync, and navigation |
+| `map.js` | Map core, GPS tracking (lat/lon/altitude), location sharing with real-time user count, URL parameter sync, and navigation |
 | `routes.js` | Route editing, API communication, and modal dialogs |
 | `offlineQueue.js` | Offline action queue — caches API calls in localStorage |
 | `config.php` | SQLite database path configuration |
@@ -327,8 +327,9 @@ The "Share location" toggle appears on both `index.html` and `satellite.html`
 - **Off by default.** Toggling it on prompts for a nickname (1–15 chars), which
   is stored in `localStorage` under `sharing_nickname`.
 - **Share-to-see**: you must share your own location to see who else is sharing.
-- While sharing, a small red "Sharing · &lt;nickname&gt;" label appears below the
-  location badge in the top-left.
+- While sharing, a small red "&lt;count&gt; sharing · &lt;nickname&gt;" label appears below the
+  location badge in the top-left, showing how many people are currently sharing
+  (updated every 30 seconds with each share ping).
 - Your location is sent to the server immediately on enable, then every 30
   seconds. Because the interval is anchored to each hiker's own first-share
   moment, requests are naturally staggered rather than firing globally at 0/30.
