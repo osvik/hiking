@@ -54,6 +54,18 @@ let firstShareTime = null;
 /** @type {L.LayerGroup} Layer group holding other users' shared-location markers. */
 let sharedMarkersLayer = L.layerGroup();
 
+/** @type {number} How many other users are currently sharing. */
+let sharingCount = 0;
+
+/**
+ * Updates the sharing label to show the count of other sharing users
+ * followed by the user's own nickname.
+ */
+function updateSharingLabel() {
+  if (!sharingEnabled || !sharingNickname) return;
+  sharingLabel.textContent = sharingCount + ' sharing · ' + sharingNickname;
+}
+
 const badgeEl = document.getElementById('locationBadge');
 
 const centerBtn = document.getElementById('centerBtn');
@@ -375,6 +387,7 @@ function sendShare() {
  */
 function renderSharedUsers(users) {
   sharedMarkersLayer.clearLayers();
+  var count = users.length;
   users.forEach(function(u) {
     if (u.nickname === sharingNickname) return;
     var icon = L.divIcon({
@@ -394,6 +407,8 @@ function renderSharedUsers(users) {
       className: 'shared-user-bubble'
     });
   });
+  sharingCount = count;
+  updateSharingLabel();
 }
 
 /**
@@ -416,7 +431,7 @@ function startSharing() {
     sharingNickname = nick;
     sharingEnabled = true;
     localStorage.setItem('sharing_nickname', nick);
-    sharingLabel.textContent = 'Sharing · ' + nick;
+    updateSharingLabel();
     sharingLabel.style.display = 'block';
     menuShareLocation.textContent = 'Stop sharing';
     menuShareLocation.classList.add('sharing-on');
@@ -476,7 +491,7 @@ function restoreSharing() {
   if (!saved) return;
   sharingNickname = saved;
   sharingEnabled = true;
-  sharingLabel.textContent = 'Sharing · ' + saved;
+  updateSharingLabel();
   sharingLabel.style.display = 'block';
   menuShareLocation.textContent = 'Stop sharing';
   menuShareLocation.classList.add('sharing-on');
