@@ -22,9 +22,14 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 ## Setup
 
 1. Clone or copy the files into a web server directory.
-2. Serve the files over **HTTPS** (or `http://localhost` for testing).  
+2. Open `install.php` in your browser (e.g. `https://example.com/install.php`).
+   - The installer checks PHP version, required extensions (PDO, SQLite), and file permissions.
+   - Fill in the configuration form (database path, API key, share timeout) and click **Install**.
+   - The installer creates `config.php` with restrictive permissions (`0640`).
+3. After installation, open `index.html`.
+4. **Delete `install.php`** from the server when you're done, to prevent anyone from re-running it.
+5. Serve the files over **HTTPS** (or `http://localhost` for testing).  
    The Geolocation API is blocked by browsers on insecure origins.
-3. Open `index.html`.
 
 ## Files
 
@@ -338,20 +343,19 @@ existing `?route=` params (see [Filtering Routes by URL](#filtering-routes-by-ur
 
 ## Configuration
 
-Edit `config.php` to change the SQLite database file location:
+The installer creates `config.php` with the values you entered. To change
+them later, edit `config.php` directly:
 
 ```php
 define('DB_PATH', __DIR__ . '/hiking.db');
+define('API_KEY', 'your-random-secret');
+define('SHARE_TIMEOUT_MINUTES', 10);
 ```
 
 If the database file does not exist, it is created automatically on the first API call.
 
-The shared-location pruning timeout is also configurable (in minutes; users
-not updated within this window are deleted on each `share_location` call):
-
-```php
-define('SHARE_TIMEOUT_MINUTES', 10);
-```
+The shared-location pruning timeout is in minutes; users not updated within
+this window are deleted on each `share_location` call.
 
 ## Location Sharing
 
