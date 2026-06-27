@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Weather</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #fff;
+      color: #333;
+      overflow-y: auto;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .badge {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.4;
+      pointer-events: none;
+      max-width: calc(100% - 96px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .badge.error {
+      background: rgba(180,0,0,0.8);
+    }
+
+    .menu-controls {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .map-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background 0.15s;
+    }
+
+    .map-btn:active {
+      background: #e0e0e0;
+    }
+
+    .map-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: #333;
+      pointer-events: none;
+    }
+
+    .menu-dropdown {
+      position: fixed;
+      top: 68px;
+      right: 16px;
+      z-index: 1001;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      overflow: hidden;
+      min-width: 140px;
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .menu-dropdown.open {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .menu-item {
+      display: block;
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .menu-item:active {
+      background: #e0e0e0;
+    }
+
+    .menu-item.active {
+      color: #007aff;
+      font-weight: 600;
+    }
+
+    .content {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 72px 16px 32px;
+    }
+
+    .status {
+      text-align: center;
+      padding: 48px 16px;
+      color: #888;
+      font-size: 15px;
+    }
+
+    .sun-card {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #f7f7f9;
+      border-radius: 12px;
+    }
+
+    .sun-block {
+      text-align: center;
+    }
+
+    .sun-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .sun-value {
+      font-size: 22px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .hour-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .hour-table th,
+    .hour-table td {
+      padding: 10px 6px;
+      text-align: center;
+    }
+
+    .hour-table thead th {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 1;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #888;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .hour-table tbody tr {
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .hour-table tbody tr.now {
+      background: rgba(0,122,255,0.06);
+    }
+
+    .hour-table .col-hour {
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .hour-table .col-day {
+      display: block;
+      font-size: 10px;
+      color: #999;
+      font-weight: 500;
+      margin-top: 1px;
+    }
+
+    .temp {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .rain {
+      color: #2a7af0;
+    }
+
+    .snow {
+      color: #6fb3d6;
+    }
+
+    .wind {
+      color: #666;
+    }
+
+    .dim {
+      color: #ccc;
+    }
+
+    .section-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      margin: 8px 0 12px;
+      font-weight: 600;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="badge" id="badge">📍 Loading…</div>
+
+  <div class="menu-controls">
+    <button class="map-btn" id="menuBtn" aria-label="Menu" title="Menu">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="2" rx="1"/><rect x="3" y="11" width="18" height="2" rx="1"/><rect x="3" y="18" width="18" height="2" rx="1"/></svg>
+    </button>
+  </div>
+
+  <div class="menu-dropdown" id="menuDropdown">
+    <a class="menu-item" href="index.html">Map</a>
+    <a class="menu-item" href="satellite.html">Satellite</a>
+    <a class="menu-item" href="compass.html">Compass</a>
+    <a class="menu-item active" href="weather.html">Weather</a>
+    <a class="menu-item" href="admin.html">Admin Routes</a>
+  </div>
+
+  <div class="content" id="content">
+    <div class="status" id="status">Loading weather…</div>
+  </div>
+
+  <script>
+    (function () {
+      var badge = document.getElementById('badge');
+      var statusEl = document.getElementById('status');
+      var content = document.getElementById('content');
+      var menuBtn = document.getElementById('menuBtn');
+      var menuDropdown = document.getElementById('menuDropdown');
+
+      /**
+       * Shows an error message in the badge and a status line.
+       *
+       * @param {string} msg - The error message to show.
+       */
+      function showError(msg) {
+        badge.textContent = msg;
+        badge.classList.add('error');
+        statusEl.textContent = msg;
+        statusEl.classList.remove('hidden');
+      }
+
+      /**
+       * Reads latitude and longitude from the URL query parameters (?lat=, ?long=).
+       *
+       * @returns {{lat:number, lon:number}|null} Parsed coordinates, or null if
+       *   missing or non-numeric.
+       */
+      function getCoordsFromURL() {
+        var params = new URLSearchParams(window.location.search);
+        var lat = parseFloat(params.get('lat'));
+        var lon = parseFloat(params.get('long'));
+        if (isNaN(lat) || isNaN(lon)) return null;
+        return { lat: lat, lon: lon };
+      }
+
+      /**
+       * Resolves coordinates to display, preferring URL params and falling back
+       * to the device's GPS via getCurrentPosition.
+       *
+       * @returns {Promise<{lat:number, lon:number}>} A promise that resolves
+       *   with the coordinates or rejects on failure.
+       */
+      function resolveCoords() {
+        var fromURL = getCoordsFromURL();
+        if (fromURL) return Promise.resolve(fromURL);
+
+        if (!navigator.geolocation) {
+          return Promise.reject(new Error('No coordinates and no geolocation'));
+        }
+
+        return new Promise(function (resolve, reject) {
+          navigator.geolocation.getCurrentPosition(
+            function (pos) {
+              resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+            },
+            function () {
+              reject(new Error('Location unavailable'));
+            },
+            { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 }
+          );
+        });
+      }
+
+      /**
+       * Returns the device's IANA timezone (e.g. "Europe/Madrid") if available,
+       * otherwise "auto" (which makes Open-Meteo use the location's local tz).
+       *
+       * @returns {string} The timezone string to send to Open-Meteo.
+       */
+      function deviceTimezone() {
+        try {
+          var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          if (tz) return tz;
+        } catch (e) {}
+        return 'auto';
+      }
+
+      /**
+       * Fetches hourly and daily forecast data from Open-Meteo for the given
+       * coordinates, requesting temperature, rain, snow, wind, sunrise, and
+       * sunset in the device's timezone.
+       *
+       * @param {number} lat - Latitude.
+       * @param {number} lon - Longitude.
+       * @returns {Promise<Object>} A promise that resolves with the parsed JSON
+       *   response or rejects on network/HTTP error.
+       */
+      function fetchWeather(lat, lon) {
+        var url = 'https://api.open-meteo.com/v1/forecast'
+          + '?latitude=' + encodeURIComponent(lat)
+          + '&longitude=' + encodeURIComponent(lon)
+          + '&hourly=temperature_2m,rain,snowfall,wind_speed_10m'
+          + '&daily=sunrise,sunset'
+          + '&forecast_days=2'
+          + '&timezone=' + encodeURIComponent(deviceTimezone());
+
+        return fetch(url).then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        });
+      }
+
+      /**
+       * Formats an ISO datetime string (without seconds) as a short hour label
+       * in the device's locale, e.g. "14:00".
+       *
+       * @param {string} iso - The ISO 8601 datetime string from the API.
+       * @returns {string} The formatted hour.
+       */
+      function fmtHour(iso) {
+        var d = new Date(iso);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+
+      /**
+       * Formats an ISO date string as a short weekday/day label, e.g. "Sat".
+       *
+       * @param {string} iso - The ISO 8601 datetime string from the API.
+       * @returns {string} The short weekday name in the device's locale.
+       */
+      function fmtDay(iso) {
+        var d = new Date(iso);
+        return d.toLocaleDateString([], { weekday: 'short' });
+      }
+
+      /**
+       * Renders the sunrise/sunset card and the 24-hour table from the
+       * Open-Meteo response, in the device's timezone. Only metrics present in
+       * the response are shown; missing values are rendered as a dash.
+       *
+       * @param {Object} data - The parsed Open-Meteo JSON response.
+       */
+      function render(data) {
+        var hourly = data.hourly || {};
+        var daily = data.daily || {};
+        var units = data.hourly_units || {};
+        var times = hourly.time || [];
+        var temp = hourly.temperature_2m;
+        var rain = hourly.rain;
+        var snow = hourly.snowfall;
+        var wind = hourly.wind_speed_10m;
+
+        var hasTemp = Array.isArray(temp);
+        var hasRain = Array.isArray(rain);
+        var hasSnow = Array.isArray(snow);
+        var hasWind = Array.isArray(wind);
+
+        var html = '';
+
+        // Sunrise / sunset card — show only if both are present for today.
+        var sunrise = daily.sunrise && daily.sunrise[0];
+        var sunset = daily.sunset && daily.sunset[0];
+        if (sunrise && sunset) {
+          html += '<div class="section-title">Today</div>';
+          html += '<div class="sun-card">';
+          html += '  <div class="sun-block">';
+          html += '    <div class="sun-label">Sunrise</div>';
+          html += '    <div class="sun-value">' + fmtHour(sunrise) + '</div>';
+          html += '  </div>';
+          html += '  <div class="sun-block">';
+          html += '    <div class="sun-label">Sunset</div>';
+          html += '    <div class="sun-value">' + fmtHour(sunset) + '</div>';
+          html += '  </div>';
+          html += '</div>';
+        }
+
+        // Build the 24-hour window starting at the current device-local hour.
+        var nowIdx = -1;
+        var now = new Date();
+        var nowIsoLocal = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+          .toISOString().slice(0, 13); // "YYYY-MM-DDTHH"
+        for (var i = 0; i < times.length; i++) {
+          if (times[i].slice(0, 13) === nowIsoLocal) { nowIdx = i; break; }
+        }
+        if (nowIdx === -1) nowIdx = 0;
+        var endIdx = Math.min(nowIdx + 24, times.length);
+
+        html += '<div class="section-title">Next 24 hours</div>';
+        html += '<table class="hour-table"><thead><tr>';
+        html += '<th class="col-hour">Hour</th>';
+        if (hasTemp) html += '<th>Temp</th>';
+        if (hasRain) html += '<th>Rain</th>';
+        if (hasSnow) html += '<th>Snow</th>';
+        if (hasWind) html += '<th>Wind</th>';
+        html += '</tr></thead><tbody>';
+
+        var prevDay = '';
+        for (var j = nowIdx; j < endIdx; j++) {
+          var t = times[j];
+          var dayLabel = fmtDay(t);
+          var isNow = j === nowIdx;
+          html += '<tr class="' + (isNow ? 'now' : '') + '">';
+          html += '<td class="col-hour">' + fmtHour(t)
+            + (dayLabel !== prevDay ? '<span class="col-day">' + dayLabel + '</span>' : '')
+            + '</td>';
+          prevDay = dayLabel;
+          if (hasTemp) html += '<td class="temp">' + fmtVal(temp[j], units.temperature_2m) + '</td>';
+          if (hasRain) html += '<td class="rain">' + fmtVal(rain[j], units.rain) + '</td>';
+          if (hasSnow) html += '<td class="snow">' + fmtVal(snow[j], units.snowfall) + '</td>';
+          if (hasWind) html += '<td class="wind">' + fmtVal(wind[j], units.wind_speed_10m) + '</td>';
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+
+        statusEl.classList.add('hidden');
+        content.innerHTML = html;
+      }
+
+      /**
+       * Formats a single numeric value with its unit. Returns a dim dash for
+       * null/undefined values so the table layout stays aligned.
+       *
+       * @param {number|null|undefined} v - The value to format.
+       * @param {string} unit - The unit string from the API (e.g. "°C").
+       * @returns {string} The formatted cell content.
+       */
+      function fmtVal(v, unit) {
+        if (v === null || v === undefined) return '<span class="dim">—</span>';
+        var n = (Math.round(v * 10) / 10).toString();
+        return n + (unit ? '<span class="dim"> ' + unit + '</span>' : '');
+      }
+
+      resolveCoords()
+        .then(function (coords) {
+          badge.textContent = '📍 ' + coords.lat.toFixed(5) + ', ' + coords.lon.toFixed(5);
+          return fetchWeather(coords.lat, coords.lon);
+        })
+        .then(function (data) {
+          if (!data.hourly || !data.hourly.time || data.hourly.time.length === 0) {
+            showError('No forecast data available');
+            return;
+          }
+          render(data);
+        })
+        .catch(function (err) {
+          showError(err.message || 'Weather unavailable');
+        });
+
+      menuBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        menuDropdown.classList.toggle('open');
+      });
+
+      document.addEventListener('click', function () {
+        menuDropdown.classList.remove('open');
+      });
+
+      menuDropdown.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -76,6 +76,7 @@ const menuDropdown = document.getElementById('menuDropdown');
 const menuMap = document.getElementById('menuMap');
 const menuSatellite = document.getElementById('menuSatellite');
 const menuCompass = document.getElementById('menuCompass');
+const menuWeather = document.getElementById('menuWeather');
 const menuCreateRoute = document.getElementById('menuCreateRoute');
 const menuFinishRoute = document.getElementById('menuFinishRoute');
 const menuAdmin = document.getElementById('menuAdmin');
@@ -520,6 +521,12 @@ if (menuSatellite) {
 menuCompass.addEventListener('click', function() {
   window.location = 'compass.html';
 });
+
+if (menuWeather) {
+  menuWeather.addEventListener('click', function() {
+    window.location = buildViewUrl('weather.html');
+  });
+}
 
 menuShareLocation.addEventListener('click', handleShareLocation);
 

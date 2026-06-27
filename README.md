@@ -6,7 +6,8 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 
 - Real-time position tracking via `watchPosition()` including altitude when available from GPS
 - Compass using the device magnetometer (`DeviceOrientation` API), plus a live location badge (lat, lon, altitude)
-- Navigation menu to switch between map, satellite, and compass
+- Navigation menu to switch between map, satellite, compass, and weather
+- Hourly weather forecast (temperature, rain, snow, wind, sunrise/sunset) for the next 24 hours via [Open-Meteo](https://open-meteo.com/), shown in the device's timezone
 - Custom zoom controls (+/−)
 - Center-on-user button with follow mode
 - Create hiking routes by adding GPS points on the map
@@ -32,6 +33,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 | `index.html` | Map page |
 | `satellite.html` | Satellite view (ESRI World Imagery) |
 | `compass.html` | Compass page (heading + live location badge with altitude) |
+| `weather.html` | Hourly weather forecast page (next 24h: temperature, rain, snow, wind, sunrise/sunset) |
 | `admin.html` | Admin page — manage routes |
 | `style.css` | Shared styles for the map pages (`index.html`, `satellite.html`) |
 | `map.js` | Map core, GPS tracking (lat/lon/altitude), location sharing with real-time user count, URL parameter sync, and navigation |
@@ -287,6 +289,39 @@ You can share or bookmark the URL at any time to return to the exact same view. 
 
 Without these parameters, the map starts centered on Madrid and jumps to the user's GPS position on the first location lock (default behaviour).
 
+## Weather
+
+`weather.html` shows an hourly forecast for the next 24 hours at a given
+location, using the free [Open-Meteo](https://open-meteo.com/) API (no API
+key, fetched directly from the browser — no backend required).
+
+```
+weather.html?lat=42.123&long=-3.456
+```
+
+| Param | Required | Description |
+|---|---|---|
+| `lat` | No* | Latitude (decimal degrees) |
+| `long` | No* | Longitude (decimal degrees) |
+
+\* If `lat`/`long` are omitted, the page falls back to the device's GPS via
+the Geolocation API. The "Weather" menu entry on the map/satellite pages
+passes the current map centre automatically.
+
+The following are displayed when available from Open-Meteo:
+
+- Predicted temperature by hour (°C)
+- Predicted rain by hour (mm)
+- Predicted snow by hour (cm)
+- Predicted (average) wind speed by hour (km/h)
+- Today's sunrise and sunset
+
+All times are rendered in the **device's timezone**
+(`Intl.DateTimeFormat().resolvedOptions().timeZone`); if that cannot be
+determined, Open-Meteo's `auto` timezone (the queried location's local time)
+is used. Metrics not returned by the API are hidden, and a fetch failure
+shows an error badge instead of stale or empty data.
+
 ## Triggering Route Creation by URL
 
 Pass `?action=new` to open the map page and immediately start the
@@ -351,5 +386,6 @@ The "Share location" toggle appears on both `index.html` and `satellite.html`
 - [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) — satellite tile imagery
 - [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API) — GPS access
 - [DeviceOrientation API](https://developer.mozilla.org/en-US/docs/Web/API/DeviceOrientationEvent) — compass heading
+- [Open-Meteo](https://open-meteo.com/) — free weather forecast API
 - [localStorage API](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage) — offline queue and state persistence
 - PHP + SQLite — backend API
