@@ -268,6 +268,7 @@ function startTracking() {
       var lat = position.coords.latitude;
       var lng = position.coords.longitude;
       var acc = position.coords.accuracy;
+      var alt = position.coords.altitude;
 
       createUserMarker(lat, lng, acc);
 
@@ -275,7 +276,13 @@ function startTracking() {
         map.setView([lat, lng]);
       }
 
+      if (alt == null && !map._altWarned) {
+        console.warn('Altitude not provided by browser/device — only lat/lon shown');
+        map._altWarned = true;
+      }
+
       badgeEl.textContent = '📍 ' + lat.toFixed(5) + ', ' + lng.toFixed(5)
+        + (alt != null ? ', ' + Math.round(alt) : '')
         + ' (±' + Math.round(acc) + 'm)';
       badgeEl.className = 'location-badge';
 
