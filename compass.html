@@ -53,6 +53,14 @@
       background: rgba(180,0,0,0.8);
     }
 
+    .location-badge-bottom {
+      top: auto;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
     .permission-overlay {
       position: fixed;
       inset: 0;
@@ -185,6 +193,7 @@
 </head>
 <body>
   <div class="badge" id="badge">0° N</div>
+  <div class="badge location-badge-bottom" id="locationBadge">📍 Locating...</div>
   <canvas id="c"></canvas>
 
   <div class="menu-controls">
@@ -487,6 +496,28 @@
       }
 
       init();
+
+      var locationBadge = document.getElementById('locationBadge');
+
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+          function (pos) {
+            var lat = pos.coords.latitude;
+            var lon = pos.coords.longitude;
+            var alt = pos.coords.altitude;
+            var acc = pos.coords.accuracy;
+            locationBadge.textContent = '📍 ' + lat.toFixed(5) + ', ' + lon.toFixed(5)
+              + (alt != null ? ', ' + Math.round(alt) : '')
+              + ' (±' + Math.round(acc) + 'm)';
+            locationBadge.classList.remove('error');
+          },
+          function () {
+            locationBadge.textContent = '📍 Location unavailable';
+            locationBadge.classList.add('error');
+          },
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 }
+        );
+      }
 
       menuBtn.addEventListener('click', function (e) {
         e.stopPropagation();
