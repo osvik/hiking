@@ -438,7 +438,7 @@ function startSharing() {
     sharingNickname = nick;
     sharingEnabled = true;
     localStorage.setItem('sharing_nickname', nick);
-    updateSharingLabel();
+    sharingLabel.textContent = 'Sharing · ' + nick;
     sharingLabel.style.display = 'block';
     menuShareLocation.textContent = 'Stop sharing';
     menuShareLocation.classList.add('sharing-on');
@@ -498,7 +498,7 @@ function restoreSharing() {
   if (!saved) return;
   sharingNickname = saved;
   sharingEnabled = true;
-  updateSharingLabel();
+  sharingLabel.textContent = 'Sharing · ' + saved;
   sharingLabel.style.display = 'block';
   menuShareLocation.textContent = 'Stop sharing';
   menuShareLocation.classList.add('sharing-on');
