@@ -66,10 +66,18 @@ function promptForApiKey() {
 }
 
 /**
+ * Read-only API actions, served by `read.php` so they can be cached
+ * separately from mutating requests in a future service worker.
+ * @type {string[]}
+ */
+var readActions = ['get_routes', 'get_route'];
+
+/**
  * Calls the backend API and returns the parsed JSON response.
  *
- * Builds a query string from the action and params, fetches the API,
- * and throws if the response is not successful JSON.
+ * Read-only actions (`get_routes`, `get_route`) are sent to `read.php`;
+ * all write actions go to `api.php`.  This separation lays the groundwork
+ * for caching `read.php` responses with a service worker later.
  *
  * On network failure the action is enqueued for later retry via
  * OfflineQueue and the caller receives optimistic mock data so
@@ -81,7 +89,8 @@ function promptForApiKey() {
  *   when the request is queued offline.
  */
 function apiCall(action, params) {
-  var url = 'api.php?action=' + encodeURIComponent(action);
+  var endpoint = readActions.indexOf(action) !== -1 ? 'read.php' : 'api.php';
+  var url = endpoint + '?action=' + encodeURIComponent(action);
   Object.keys(params).forEach(function(k) {
     if (params[k] !== null && params[k] !== undefined) {
       url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);

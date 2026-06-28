@@ -46,21 +46,45 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 | `offlineQueue.js` | Offline action queue — caches API calls in localStorage |
 | `config.php` | SQLite database path configuration |
 | `db.php` | Database connection and schema |
-| `api.php` | REST API for routes and points |
+| `api_bootstrap.php` | Shared API bootstrap (CORS headers, OPTIONS preflight, `jsonResponse`/`errorResponse` helpers, action param parsing) — included by both `api.php` and `read.php` |
+| `api.php` | REST API for **write** actions on routes and points (INSERT/UPDATE/DELETE) |
+| `read.php` | REST API for **read-only** actions (`get_routes`, `get_route`) — SELECT only, cacheable, no API key required |
 
 ## API
 
-All endpoints return JSON. Base URL is `api.php`.
+All endpoints return JSON. There are two entry points, split so that
+read-only requests can be cached offline by a service worker while
+mutating requests always hit the server:
+
+| Endpoint | Serves | API key |
+|---|---|---|
+| `read.php` | Read-only actions (`get_routes`, `get_route`) — SELECT only | Not required |
+| `api.php` | Write actions (`create_route`, `edit_route`, `delete_route`, `add_point`, `remove_point`, `edit_point_label`, `share_location`, `stop_sharing`) — INSERT/UPDATE/DELETE | Required for route/point writes (see below) |
+
+Both accept the same `?action=...` parameter and share a common bootstrap
+(`api_bootstrap.php`) for CORS headers, OPTIONS preflight handling, and
+JSON response helpers.
 
 ### Authentication
 
-Write actions (`create_route`, `edit_route`, `delete_route`, `add_point`, `remove_point`, `edit_point_label`) require an API key:
+Write actions on routes and points (`create_route`, `edit_route`,
+`delete_route`, `add_point`, `remove_point`, `edit_point_label`) require
+an API key:
 
 ```
 GET api.php?action=create_route&name=X&color=red&api_key=YOUR_KEY
 ```
 
-Read actions (`get_routes`, `get_route`) are public and don't require a key.
+Read actions (`get_routes`, `get_route`) are served by `read.php` and
+don't require a key:
+
+```
+GET read.php?action=get_routes
+```
+
+The `share_location` and `stop_sharing` actions are public (no key) but
+still go through `api.php` because they mutate the `shared_locations`
+table.
 
 Set your API key in `config.php`:
 ```php
@@ -119,7 +143,7 @@ Deletes the route and all its points.
 #### Get all routes
 
 ```
-GET api.php?action=get_routes
+GET read.php?action=get_routes
 ```
 
 Returns all routes with their points nested.
@@ -127,7 +151,7 @@ Returns all routes with their points nested.
 #### Get a single route
 
 ```
-GET api.php?action=get_route&route_id=1
+GET read.php?action=get_route&route_id=1
 ```
 
 Returns the route metadata and its points.
@@ -223,6 +247,24 @@ which is meant for offline users, not deliberate stops).
 ## Offline Caching
 
 When the network is unavailable, route creation and point recording continue to work seamlessly.  Failed API calls are automatically queued in the browser's `localStorage` and replayed in order when connectivity returns.
+
+### Read/write endpoint split
+
+The API is split across two PHP entry points so that read-only requests
+can be cached independently of mutating ones in a future service worker:
+
+- **`read.php`** — handles `get_routes` and `get_route` (SELECT only,
+  public, no API key). Responses are deterministic and safe to cache.
+- **`api.php`** — handles every INSERT/UPDATE/DELETE action (route and
+  point edits, location sharing). These must always reach the server.
+
+The JavaScript clients (`routes.js`, `admin.html`) automatically route
+each action to the correct endpoint based on the action name, so callers
+still just invoke `apiCall(action, params)`. The offline queue
+(`offlineQueue.js`) only ever replays write actions, so it continues to
+target `api.php` exclusively. Location-sharing calls in `map.js`
+(`share_location`, `stop_sharing`) are fire-and-forget writes and also
+remain on `api.php`.
 
 ### How it works
 

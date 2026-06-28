@@ -1,33 +1,6 @@
 <?php
 
-require_once __DIR__ . '/db.php';
-
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
-
-function jsonResponse($data, int $code = 200): void
-{
-    http_response_code($code);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-function errorResponse(string $message, int $code = 400): void
-{
-    jsonResponse(['success' => false, 'error' => $message], $code);
-}
-
-$action = $_GET['action'] ?? null;
-if (!$action) {
-    errorResponse('Missing action parameter');
-}
+require_once __DIR__ . '/api_bootstrap.php';
 
 $writeActions = ['create_route', 'edit_route', 'delete_route', 'add_point', 'remove_point', 'edit_point_label'];
 if (in_array($action, $writeActions, true)) {
@@ -120,49 +93,6 @@ switch ($action) {
         $db->prepare('UPDATE points SET label = :label WHERE id = :id')
            ->execute(['label' => $label !== '' ? $label : null, 'id' => $pointId]);
         jsonResponse(['success' => true, 'message' => 'Label updated']);
-
-    case 'get_routes':
-        $routes = $db->query('SELECT id, name, color FROM routes ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
-
-        $pointStmt = $db->prepare('SELECT id, lat, lon, label, position FROM points WHERE route_id = :route_id ORDER BY position ASC');
-        foreach ($routes as &$route) {
-            $pointStmt->execute(['route_id' => $route['id']]);
-            $route['points'] = $pointStmt->fetchAll(PDO::FETCH_ASSOC);
-            $route['id'] = (int) $route['id'];
-            foreach ($route['points'] as &$p) {
-                $p['id']       = (int) $p['id'];
-                $p['lat']      = (float) $p['lat'];
-                $p['lon']      = (float) $p['lon'];
-                $p['position'] = (int) $p['position'];
-            }
-        }
-        jsonResponse(['success' => true, 'data' => $routes]);
-
-    case 'get_route':
-        $routeId = $_GET['route_id'] ?? null;
-        if ($routeId === null) {
-            errorResponse('route_id is required');
-        }
-        $stmt = $db->prepare('SELECT id, name, color FROM routes WHERE id = :id');
-        $stmt->execute(['id' => $routeId]);
-        $route = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$route) {
-            errorResponse('Route not found', 404);
-        }
-
-        $pointStmt = $db->prepare('SELECT id, lat, lon, label, position FROM points WHERE route_id = :route_id ORDER BY position ASC');
-        $pointStmt->execute(['route_id' => $routeId]);
-        $points = $pointStmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $route['id'] = (int) $route['id'];
-        foreach ($points as &$p) {
-            $p['id']       = (int) $p['id'];
-            $p['lat']      = (float) $p['lat'];
-            $p['lon']      = (float) $p['lon'];
-            $p['position'] = (int) $p['position'];
-        }
-        $route['points'] = $points;
-        jsonResponse(['success' => true, 'data' => $route]);
 
     case 'delete_route':
         $routeId = $_GET['route_id'] ?? null;
