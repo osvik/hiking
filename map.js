@@ -81,6 +81,7 @@ const menuCreateRoute = document.getElementById('menuCreateRoute');
 const menuFinishRoute = document.getElementById('menuFinishRoute');
 const menuList = document.getElementById('menuList');
 const menuAdmin = document.getElementById('menuAdmin');
+const menuAbout = document.getElementById('menuAbout');
 const menuShareLocation = document.getElementById('menuShareLocation');
 const sharingLabel = document.getElementById('sharingLabel');
 
@@ -547,6 +548,10 @@ menuList.addEventListener('click', function() {
 
 menuAdmin.addEventListener('click', function() {
   window.location = 'admin.html';
+});
+
+menuAbout.addEventListener('click', function() {
+  window.location = 'about.html';
 });
 
 centerBtn.addEventListener('click', function() {

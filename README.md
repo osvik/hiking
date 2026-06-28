@@ -6,7 +6,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 
 - Real-time position tracking via `watchPosition()` including altitude when available from GPS
 - Compass using the device magnetometer (`DeviceOrientation` API), plus a live location badge (lat, lon, altitude)
-- Navigation menu to switch between map, satellite, compass, weather, list, and admin
+- Navigation menu to switch between map, satellite, compass, weather, list, admin, and about
 - Hourly weather forecast (temperature, rain, snow, wind, sunrise/sunset) for the next 24 hours via [Open-Meteo](https://open-meteo.com/), shown in the device's timezone
 - Custom zoom controls (+/−)
 - Center-on-user button with follow mode
@@ -42,6 +42,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 | `weather.html` | Hourly weather forecast page (next 24h: temperature, rain, snow, wind, sunrise/sunset) |
 | `list.html` | List page — browse all routes and users sharing location, designed for offline caching |
 | `admin.html` | Admin page — manage routes |
+| `about.html` | About page — purpose, benefits for hikers, and info for website owners |
 | `style.css` | Shared styles for the map pages (`index.html`, `satellite.html`) |
 | `map.js` | Map core, GPS tracking (lat/lon/altitude), location sharing with real-time user count, URL parameter sync, and navigation |
 | `routes.js` | Route editing, API communication, and modal dialogs |
