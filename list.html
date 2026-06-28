@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>List</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f2f2f7;
+      overflow-y: auto;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .menu-controls {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+    }
+
+    .map-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background 0.15s;
+    }
+
+    .map-btn:active {
+      background: #e0e0e0;
+    }
+
+    .map-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: #333;
+      pointer-events: none;
+    }
+
+    .menu-dropdown {
+      position: fixed;
+      top: 68px;
+      right: 16px;
+      z-index: 1001;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      overflow: hidden;
+      min-width: 150px;
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .menu-dropdown.open {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .menu-item {
+      display: block;
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #333;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+    }
+
+    .menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .menu-item:active {
+      background: #e0e0e0;
+    }
+
+    .menu-item.active {
+      color: #007aff;
+      font-weight: 600;
+    }
+
+    .page-header {
+      padding: 28px 20px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .page-header-left {
+      min-width: 0;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #111;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      padding: 0 16px 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-list {
+      padding: 0 16px 40px;
+    }
+
+    .route-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .route-color {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1.5px solid rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+
+    .route-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .route-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .route-id {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    .user-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .user-card:active {
+      background: #f5f5f5;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #e8f0fe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-avatar svg {
+      width: 18px;
+      height: 18px;
+      fill: #007aff;
+    }
+
+    .user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .user-nickname {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-coords {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    .user-time {
+      font-size: 12px;
+      color: #999;
+      flex-shrink: 0;
+    }
+
+    .sharing-badge {
+      display: inline-block;
+      background: #e53935;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+      font-size: 15px;
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+      font-size: 15px;
+    }
+
+    .error-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #e53935;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title">List</div>
+      <div class="page-subtitle" id="subtitle">Loading...</div>
+    </div>
+  </div>
+
+  <div class="section-subtitle" id="routesSectionLabel">Routes</div>
+  <div class="card-list" id="routeList">
+    <div class="loading-state">Loading routes...</div>
+  </div>
+
+  <div class="section-subtitle" id="usersSectionLabel" style="display:none">Users sharing location</div>
+  <div class="card-list" id="userList" style="display:none"></div>
+
+  <div class="menu-controls">
+    <button class="map-btn" id="menuBtn" aria-label="Menu" title="Menu">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="2" rx="1"/><rect x="3" y="11" width="18" height="2" rx="1"/><rect x="3" y="18" width="18" height="2" rx="1"/></svg>
+    </button>
+  </div>
+
+  <div class="menu-dropdown" id="menuDropdown">
+    <a class="menu-item" href="index.html">Map</a>
+    <a class="menu-item" href="satellite.html">Satellite</a>
+    <a class="menu-item" href="compass.html">Compass</a>
+    <a class="menu-item" href="weather.html">Weather</a>
+    <a class="menu-item" href="admin.html">Admin Routes</a>
+    <div class="menu-item active" id="menuList">List</div>
+  </div>
+
+  <script>
+    /**
+     * List page — read-only overview of all routes and users sharing location.
+     *
+     * Fetches routes from the read-only API and only shows shared-location
+     * users when the visitor is actively sharing their own location (gated
+     * by a stored nickname in localStorage).  The sharing section refreshes
+     * every 30 seconds and each user card links to the map at their
+     * coordinates.
+     *
+     * @module list
+     */
+    (function () {
+      var routeList = document.getElementById('routeList');
+      var userList = document.getElementById('userList');
+      var routesSectionLabel = document.getElementById('routesSectionLabel');
+      var usersSectionLabel = document.getElementById('usersSectionLabel');
+      var subtitle = document.getElementById('subtitle');
+      var menuBtn = document.getElementById('menuBtn');
+      var menuDropdown = document.getElementById('menuDropdown');
+      var menuListEl = document.getElementById('menuList');
+
+      var sharingNickname = localStorage.getItem('sharing_nickname') || null;
+      var sharingInterval = null;
+      var lastLat = null;
+      var lastLon = null;
+
+      /**
+       * Calls a read-only API endpoint and returns the parsed JSON response.
+       *
+       * @param {string} action - The API action (e.g. "get_routes").
+       * @param {Object} params - Key-value pairs to send as query parameters.
+       * @returns {Promise<Object>} The parsed JSON response body.
+       */
+      function readApi(action, params) {
+        var url = 'read.php?action=' + encodeURIComponent(action);
+        Object.keys(params).forEach(function (k) {
+          if (params[k] !== null && params[k] !== undefined) {
+            url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+          }
+        });
+        return fetch(url).then(function (res) {
+          return res.text().then(function (text) {
+            var data;
+            try {
+              data = JSON.parse(text);
+            } catch (e) {
+              throw new Error('Server returned non-JSON response (HTTP ' + res.status + '). Raw start: ' + text.substring(0, 200));
+            }
+            if (!data.success) {
+              throw new Error(data.error || 'API error');
+            }
+            return data;
+          });
+        });
+      }
+
+      /**
+       * Publishes the caller's location via the share_location endpoint and
+       * returns the list of all currently sharing users (including self).
+       *
+       * @returns {Promise<Array>} Array of user objects.
+       */
+      function shareAndFetchUsers() {
+        if (!sharingNickname || lastLat === null || lastLon === null) {
+          return Promise.resolve([]);
+        }
+        var url = 'api.php?action=share_location'
+          + '&nickname=' + encodeURIComponent(sharingNickname)
+          + '&lat=' + encodeURIComponent(lastLat)
+          + '&lon=' + encodeURIComponent(lastLon);
+        return fetch(url).then(function (res) {
+          return res.text().then(function (text) {
+            var data;
+            try {
+              data = JSON.parse(text);
+            } catch (e) {
+              throw new Error('Server returned non-JSON response (HTTP ' + res.status + '). Raw start: ' + text.substring(0, 200));
+            }
+            if (!data.success) {
+              throw new Error(data.error || 'API error');
+            }
+            return data.data || [];
+          });
+        });
+      }
+
+      /**
+       * Formats a Unix timestamp as a human-readable relative time string.
+       *
+       * @param {number} timestamp - Unix timestamp in seconds.
+       * @returns {string} A relative time label such as "just now", "3m ago".
+       */
+      function relativeTime(timestamp) {
+        var now = Math.floor(Date.now() / 1000);
+        var diff = now - timestamp;
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        return Math.floor(diff / 86400) + 'd ago';
+      }
+
+      /**
+       * Renders the route cards into the DOM.
+       *
+       * Each card shows a colour swatch (linking to the map), the route name,
+       * and ID with point count.  An empty state is shown when there are no
+       * routes.
+       *
+       * @param {Array<Object>} routes - The array of route objects from the API.
+       */
+      function renderRoutes(routes) {
+        if (routes.length === 0) {
+          routeList.innerHTML = '<div class="empty-state">No routes found.</div>';
+          return;
+        }
+
+        routeList.innerHTML = '';
+
+        routes.forEach(function (route) {
+          var card = document.createElement('div');
+          card.className = 'route-card';
+
+          var colorSwatch = document.createElement('a');
+          colorSwatch.className = 'route-color';
+          colorSwatch.style.backgroundColor = route.color;
+          if (route.points && route.points.length > 0) {
+            var p0 = route.points[0];
+            colorSwatch.href = 'index.html?lat=' + encodeURIComponent(p0.lat)
+              + '&long=' + encodeURIComponent(p0.lon)
+              + '&route=' + encodeURIComponent(route.id);
+            colorSwatch.title = 'Go to route on map';
+          } else {
+            colorSwatch.href = 'index.html?route=' + encodeURIComponent(route.id);
+            colorSwatch.title = 'Go to route on map (no points)';
+          }
+
+          var info = document.createElement('div');
+          info.className = 'route-info';
+
+          var nameEl = document.createElement('div');
+          nameEl.className = 'route-name';
+          nameEl.textContent = route.name;
+
+          var idEl = document.createElement('div');
+          idEl.className = 'route-id';
+          idEl.textContent = 'ID: ' + route.id + ' · ' + (route.points ? route.points.length : 0) + ' points';
+
+          info.appendChild(nameEl);
+          info.appendChild(idEl);
+          card.appendChild(colorSwatch);
+          card.appendChild(info);
+          routeList.appendChild(card);
+        });
+      }
+
+      /**
+       * Renders the shared-location user cards into the DOM.
+       *
+       * Each card is a link to the map centered on that user's coordinates.
+       * Shows the nickname, coordinates, and relative last-update time.  The
+       * section (label + card list) is hidden when no users are sharing.
+       *
+       * @param {Array<Object>} users - The array of user objects from the API.
+       */
+      function renderUsers(users) {
+        if (!users || users.length === 0) {
+          usersSectionLabel.style.display = 'none';
+          userList.style.display = 'none';
+          return;
+        }
+
+        usersSectionLabel.style.display = '';
+        userList.style.display = '';
+        userList.innerHTML = '';
+
+        users.forEach(function (user) {
+          var card = document.createElement('a');
+          card.className = 'user-card';
+          card.href = 'index.html?lat=' + encodeURIComponent(user.lat)
+            + '&long=' + encodeURIComponent(user.lon)
+            + '&z=15';
+          card.title = 'See ' + user.nickname + ' on the map';
+
+          var avatar = document.createElement('div');
+          avatar.className = 'user-avatar';
+          avatar.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+
+          var info = document.createElement('div');
+          info.className = 'user-info';
+
+          var nameEl = document.createElement('div');
+          nameEl.className = 'user-nickname';
+          nameEl.textContent = user.nickname;
+
+          var coordsEl = document.createElement('div');
+          coordsEl.className = 'user-coords';
+          coordsEl.textContent = user.lat.toFixed(4) + ', ' + user.lon.toFixed(4);
+
+          info.appendChild(nameEl);
+          info.appendChild(coordsEl);
+
+          var timeEl = document.createElement('div');
+          timeEl.className = 'user-time';
+          timeEl.textContent = relativeTime(user.updated_at);
+
+          card.appendChild(avatar);
+          card.appendChild(info);
+          card.appendChild(timeEl);
+          userList.appendChild(card);
+        });
+      }
+
+      /**
+       * Fetches all routes from the read-only API and renders them.
+       *
+       * On failure the route list is replaced with an error message.
+       *
+       * @returns {Promise<Array>} Resolves with the array of routes.
+       */
+      function loadRoutes() {
+        return readApi('get_routes', {}).then(function (res) {
+          var routes = res.data || [];
+          renderRoutes(routes);
+          return routes;
+        }).catch(function (err) {
+          routeList.innerHTML = '<div class="error-state">' + err.message + '</div>';
+          routesSectionLabel.style.display = 'none';
+          throw err;
+        });
+      }
+
+      /**
+       * Loads shared users via the share_location endpoint and renders them.
+       *
+       * Uses the stored sharing nickname and last known coordinates.  The
+       * sharing section is hidden entirely when the visitor is not sharing.
+       */
+      function loadUsers() {
+        shareAndFetchUsers().then(function (users) {
+          renderUsers(users);
+        }).catch(function (err) {
+          userList.innerHTML = '<div class="error-state">' + err.message + '</div>';
+          usersSectionLabel.style.display = '';
+          userList.style.display = '';
+        });
+      }
+
+      /**
+       * Updates the page subtitle with combined route and sharing counts.
+       *
+       * @param {number} routeCount - Number of routes.
+       * @param {number} userCount - Number of users sharing (0 if not sharing).
+       */
+      function updateSubtitle(routeCount, userCount) {
+        var parts = [];
+        parts.push(routeCount + ' route' + (routeCount !== 1 ? 's' : ''));
+
+        var sharingBadge = '';
+        if (sharingNickname) {
+          sharingBadge = ' <span class="sharing-badge">' + sharingNickname + '</span>';
+          if (userCount > 0) {
+            parts.push(userCount + ' sharing');
+          }
+        }
+
+        subtitle.innerHTML = parts.join(' · ') + sharingBadge;
+      }
+
+      /**
+       * Attempts to get the device position, storing coordinates for
+       * subsequent share_location calls.  Silently degrades — if
+       * geolocation is unavailable or denied the users section simply
+       * stays hidden.
+       */
+      function requestPosition() {
+        if (!navigator.geolocation) return;
+
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            lastLat = pos.coords.latitude;
+            lastLon = pos.coords.longitude;
+            loadUsers();
+          },
+          function () {
+            // Geolocation unavailable or denied — users section stays hidden.
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        );
+      }
+
+      /**
+       * Starts the 30-second sharing refresh interval.
+       *
+       * Updates the user's location on the server and refreshes the displayed
+       * user list.  If geolocation is available a new position is obtained
+       * on each tick via watchPosition; otherwise the last known coordinates
+       * are reused.
+       */
+      function startSharingRefresh() {
+        if (!sharingNickname) return;
+
+        var watchId = null;
+
+        if (navigator.geolocation) {
+          watchId = navigator.geolocation.watchPosition(
+            function (pos) {
+              lastLat = pos.coords.latitude;
+              lastLon = pos.coords.longitude;
+            },
+            function () {},
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+          );
+        }
+
+        sharingInterval = setInterval(function () {
+          loadUsers();
+        }, 30000);
+
+        // Clean up the watch when the page unloads.
+        window.addEventListener('beforeunload', function () {
+          if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+          }
+        });
+      }
+
+      /**
+       * Boot sequence: always loads routes; conditionally loads shared users
+       * when the visitor has a sharing nickname in localStorage.
+       */
+      function loadAll() {
+        var routeCount = 0;
+        var userCount = 0;
+
+        function maybeUpdateSubtitle() {
+          updateSubtitle(routeCount, userCount);
+        }
+
+        loadRoutes().then(function (routes) {
+          routeCount = routes.length;
+          maybeUpdateSubtitle();
+        }).catch(function () {
+          maybeUpdateSubtitle();
+        });
+
+        if (sharingNickname) {
+          requestPosition();
+          startSharingRefresh();
+        } else {
+          maybeUpdateSubtitle();
+        }
+      }
+
+      menuBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        menuDropdown.classList.toggle('open');
+      });
+
+      document.addEventListener('click', function () {
+        menuDropdown.classList.remove('open');
+      });
+
+      menuDropdown.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+
+      menuListEl.addEventListener('click', function () {
+        menuDropdown.classList.remove('open');
+      });
+
+      loadAll();
+    })();
+  </script>
+</body>
+</html>

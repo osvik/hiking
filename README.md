@@ -6,7 +6,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 
 - Real-time position tracking via `watchPosition()` including altitude when available from GPS
 - Compass using the device magnetometer (`DeviceOrientation` API), plus a live location badge (lat, lon, altitude)
-- Navigation menu to switch between map, satellite, compass, and weather
+- Navigation menu to switch between map, satellite, compass, weather, list, and admin
 - Hourly weather forecast (temperature, rain, snow, wind, sunrise/sunset) for the next 24 hours via [Open-Meteo](https://open-meteo.com/), shown in the device's timezone
 - Custom zoom controls (+/−)
 - Center-on-user button with follow mode
@@ -15,6 +15,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Routes persist in SQLite and reload on page load
 - Filter displayed routes via `?route=` URL parameters
 - Position map via `?lat=`, `?long=`, and `?z=` URL parameters
+- List page showing all routes and users sharing location, designed for offline caching
 - Admin page to view, edit, and delete routes
 - **Location sharing** — share your position with other hikers and see everyone else who is sharing on the map (gated: you must share your own to see others)
 - Mobile-first design
@@ -39,6 +40,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 | `satellite.html` | Satellite view (ESRI World Imagery) |
 | `compass.html` | Compass page (heading + live location badge with altitude) |
 | `weather.html` | Hourly weather forecast page (next 24h: temperature, rain, snow, wind, sunrise/sunset) |
+| `list.html` | List page — browse all routes and users sharing location, designed for offline caching |
 | `admin.html` | Admin page — manage routes |
 | `style.css` | Shared styles for the map pages (`index.html`, `satellite.html`) |
 | `map.js` | Map core, GPS tracking (lat/lon/altitude), location sharing with real-time user count, URL parameter sync, and navigation |
@@ -368,6 +370,27 @@ All times are rendered in the **device's timezone**
 determined, Open-Meteo's `auto` timezone (the queried location's local time)
 is used. Metrics not returned by the API are hidden, and a fetch failure
 shows an error badge instead of stale or empty data.
+
+## List Page
+
+`list.html` shows all routes and users currently sharing their location in a
+read-only card-based layout, designed to be cached offline by a service
+worker.
+
+- **Routes section** — each route is shown as a card with a colour swatch
+  linking to the map, route name, ID, and point count.  Fetched from
+  `read.php` (no API key required).
+- **Users section** — only visible when the visitor is actively sharing
+  their own location (i.e. a `sharing_nickname` is stored in `localStorage`).
+  Uses the `share_location` API endpoint (which also updates the visitor's
+  position on the server), so this follows the same share-to-see gating as
+  the map pages.
+  - Refreshes automatically every 30 seconds via `setInterval`.
+  - Each user card is a link to the map centered on that user's coordinates.
+  - The entire section is hidden when no `sharing_nickname` is present or
+    when the API returns empty results.
+- Linked from the hamburger menu in all other pages (Map, Satellite, Compass,
+  Weather, Admin).
 
 ## Triggering Route Creation by URL
 

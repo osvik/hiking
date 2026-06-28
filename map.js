@@ -79,6 +79,7 @@ const menuCompass = document.getElementById('menuCompass');
 const menuWeather = document.getElementById('menuWeather');
 const menuCreateRoute = document.getElementById('menuCreateRoute');
 const menuFinishRoute = document.getElementById('menuFinishRoute');
+const menuList = document.getElementById('menuList');
 const menuAdmin = document.getElementById('menuAdmin');
 const menuShareLocation = document.getElementById('menuShareLocation');
 const sharingLabel = document.getElementById('sharingLabel');
@@ -538,6 +539,10 @@ menuCreateRoute.addEventListener('click', function() {
 menuFinishRoute.addEventListener('click', function() {
   menuDropdown.classList.remove('open');
   handleFinishRoute();
+});
+
+menuList.addEventListener('click', function() {
+  window.location = 'list.html';
 });
 
 menuAdmin.addEventListener('click', function() {
