@@ -202,6 +202,7 @@
             route_id: params.route_id,
             lat: params.lat,
             lon: params.lon,
+            altitude: params.altitude != null ? params.altitude : null,
             label: params.label || '',
             position: -1
           }

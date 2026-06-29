@@ -27,6 +27,9 @@ let map;
 /** @type {L.Marker} Current user position marker on the map. */
 let userMarker;
 
+/** @type {number|null} Latest GPS altitude in metres, null when unavailable. */
+let userAltitude = null;
+
 /** @type {L.Circle} Accuracy circle drawn around the user marker. */
 let userCircle;
 
@@ -272,6 +275,8 @@ function startTracking() {
       var lng = position.coords.longitude;
       var acc = position.coords.accuracy;
       var alt = position.coords.altitude;
+
+      userAltitude = (alt != null && !isNaN(alt)) ? alt : null;
 
       createUserMarker(lat, lng, acc);
 
@@ -608,4 +613,4 @@ if (new URLSearchParams(window.location.search).get('action') === 'new') {
   handleCreateRoute();
 }
 
-export { map, userMarker };
+export { map, userMarker, userAltitude };

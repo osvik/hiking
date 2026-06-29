@@ -11,6 +11,7 @@ Real-time GPS tracking map and compass for hiking. Built with Leaflet.js, the HT
 - Custom zoom controls (+/−)
 - Center-on-user button with follow mode
 - Create hiking routes by adding GPS points on the map
+- **Per-point altitude** — when the device provides GPS altitude, it is stored with each point (meters above mean sea level)
 - **Offline support** — route creation and point recording work without a connection and sync automatically when back online
 - Routes persist in SQLite and reload on page load
 - Filter displayed routes via `?route=` URL parameters
@@ -162,7 +163,7 @@ Returns the route metadata and its points.
 #### Add a point
 
 ```
-GET api.php?action=add_point&route_id=1&lat=42.123&lon=-3.456&label=Summit
+GET api.php?action=add_point&route_id=1&lat=42.123&lon=-3.456&altitude=1284.5&label=Summit
 ```
 
 | Param | Required | Description |
@@ -170,10 +171,13 @@ GET api.php?action=add_point&route_id=1&lat=42.123&lon=-3.456&label=Summit
 | `route_id` | Yes | Route ID |
 | `lat` | Yes | Latitude |
 | `lon` | Yes | Longitude |
+| `altitude` | No | GPS altitude in metres above mean sea level (stored when provided, `null` otherwise) |
 | `label` | No | Optional point label |
 
 Points are appended at the end of the route — `position` is computed as
-`MAX(position) + 1` for the route at insert time.
+`MAX(position) + 1` for the route at insert time. When the client has a
+GPS altitude fix it is sent as `altitude`; the value is persisted on the
+point and returned by the read endpoints (`null` when unavailable).
 
 #### Edit a point label
 

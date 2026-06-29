@@ -7,7 +7,7 @@
  *
  * @module routes
  */
-import { map, userMarker } from './map.js';
+import { map, userMarker, userAltitude } from './map.js';
 
 /** @type {?function} Pending modal resolve callback, cleared on dismiss. */
 let modalResolve = null;
@@ -292,6 +292,7 @@ function handleAddPoint() {
         route_id: currentEditingRoute.id,
         lat: latlng.lat,
         lon: latlng.lng,
+        altitude: userAltitude,
         label: label,
         api_key: key
       }).then(function(res) {

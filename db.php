@@ -27,9 +27,22 @@ function getDB(): PDO
                 lon REAL NOT NULL,
                 label TEXT,
                 position INTEGER NOT NULL DEFAULT 0,
+                altitude REAL,
                 FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
             )
         ");
+
+        $columns = $db->query('PRAGMA table_info(points)')->fetchAll(PDO::FETCH_ASSOC);
+        $hasAltitude = false;
+        foreach ($columns as $col) {
+            if ($col['name'] === 'altitude') {
+                $hasAltitude = true;
+                break;
+            }
+        }
+        if (!$hasAltitude) {
+            $db->exec('ALTER TABLE points ADD COLUMN altitude REAL');
+        }
 
         $db->exec("
             CREATE TABLE IF NOT EXISTS shared_locations (

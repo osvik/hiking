@@ -29,6 +29,7 @@ switch ($action) {
         $lat     = $_GET['lat'] ?? null;
         $lon     = $_GET['lon'] ?? null;
         $label   = trim($_GET['label'] ?? '');
+        $alt     = $_GET['altitude'] ?? null;
 
         if ($routeId === null || $lat === null || $lon === null) {
             errorResponse('route_id, lat, and lon are required');
@@ -36,6 +37,14 @@ switch ($action) {
 
         if (!is_numeric($lat) || !is_numeric($lon)) {
             errorResponse('lat and lon must be numeric values');
+        }
+
+        $altitude = null;
+        if ($alt !== null && $alt !== '') {
+            if (!is_numeric($alt)) {
+                errorResponse('altitude must be a numeric value');
+            }
+            $altitude = (float) $alt;
         }
 
         $routeStmt = $db->prepare('SELECT id FROM routes WHERE id = :id');
@@ -50,17 +59,18 @@ switch ($action) {
         $maxPos->execute(['route_id' => $routeId]);
         $position = (int) $maxPos->fetch(PDO::FETCH_ASSOC)['next_pos'];
 
-        $stmt = $db->prepare('INSERT INTO points (route_id, lat, lon, label, position) VALUES (:route_id, :lat, :lon, :label, :position)');
+        $stmt = $db->prepare('INSERT INTO points (route_id, lat, lon, label, position, altitude) VALUES (:route_id, :lat, :lon, :label, :position, :altitude)');
         $stmt->execute([
             'route_id' => $routeId,
             'lat'      => (float) $lat,
             'lon'      => (float) $lon,
             'label'    => $label !== '' ? $label : null,
             'position' => $position,
+            'altitude' => $altitude,
         ]);
         $pointId = (int) $db->lastInsertId();
         $db->commit();
-        jsonResponse(['success' => true, 'data' => ['id' => $pointId, 'route_id' => (int) $routeId, 'lat' => (float) $lat, 'lon' => (float) $lon, 'label' => $label !== '' ? $label : null, 'position' => $position]], 201);
+        jsonResponse(['success' => true, 'data' => ['id' => $pointId, 'route_id' => (int) $routeId, 'lat' => (float) $lat, 'lon' => (float) $lon, 'label' => $label !== '' ? $label : null, 'position' => $position, 'altitude' => $altitude]], 201);
 
     case 'remove_point':
         $pointId = $_GET['point_id'] ?? null;
