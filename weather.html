@@ -293,6 +293,22 @@
       var menuBtn = document.getElementById('menuBtn');
       var menuDropdown = document.getElementById('menuDropdown');
 
+      (function () {
+        var links = menuDropdown.querySelectorAll('[href="index.html"], [href="satellite.html"]');
+        var params = new URLSearchParams(window.location.search);
+        var lat = params.get('lat');
+        var lng = params.get('long');
+        var z = params.get('z');
+        if (lat === null || lng === null) return;
+        for (var i = 0; i < links.length; i++) {
+          var url = new URL(links[i].href);
+          url.searchParams.set('lat', lat);
+          url.searchParams.set('long', lng);
+          if (z !== null) url.searchParams.set('z', z);
+          links[i].href = url.toString();
+        }
+      })();
+
       /**
        * Shows an error message in the badge and a status line.
        *
