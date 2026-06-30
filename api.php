@@ -39,6 +39,16 @@ switch ($action) {
             errorResponse('lat and lon must be numeric values');
         }
 
+        $latVal = (float) $lat;
+        $lonVal = (float) $lon;
+        if ($latVal < -90 || $latVal > 90 || $lonVal < -180 || $lonVal > 180) {
+            errorResponse('lat must be between -90 and 90 and lon between -180 and 180');
+        }
+
+        if (mb_strlen($label) > 100) {
+            errorResponse('label must be 100 characters or fewer');
+        }
+
         $altitude = null;
         if ($alt !== null && $alt !== '') {
             if (!is_numeric($alt)) {
@@ -92,6 +102,10 @@ switch ($action) {
 
         if ($pointId === null) {
             errorResponse('point_id is required');
+        }
+
+        if (mb_strlen($label) > 100) {
+            errorResponse('label must be 100 characters or fewer');
         }
 
         $stmt = $db->prepare('SELECT id FROM points WHERE id = :id');
@@ -169,6 +183,12 @@ switch ($action) {
         }
         if ($lat === null || $lon === null || !is_numeric($lat) || !is_numeric($lon)) {
             errorResponse('lat and lon are required and must be numeric');
+        }
+
+        $latVal = (float) $lat;
+        $lonVal = (float) $lon;
+        if ($latVal < -90 || $latVal > 90 || $lonVal < -180 || $lonVal > 180) {
+            errorResponse('lat must be between -90 and 90 and lon between -180 and 180');
         }
 
         $ip = $_SERVER['REMOTE_ADDR'] ?? '';

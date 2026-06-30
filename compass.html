@@ -204,6 +204,7 @@
 
   <div class="menu-dropdown" id="menuDropdown">
     <a class="menu-item" href="index.html">Map</a>
+    <a class="menu-item" href="satellite.html">Satellite</a>
     <a class="menu-item active" href="compass.html">Compass</a>
     <a class="menu-item" href="weather.html">Weather</a>
     <a class="menu-item" href="list.html">List</a>
@@ -226,6 +227,22 @@
       const permBtn = document.getElementById('permissionBtn');
       const menuBtn = document.getElementById('menuBtn');
       const menuDropdown = document.getElementById('menuDropdown');
+
+      (function () {
+        var links = menuDropdown.querySelectorAll('a.menu-item');
+        var params = new URLSearchParams(window.location.search);
+        var lat = params.get('lat');
+        var lng = params.get('long');
+        var z = params.get('z');
+        if (lat === null || lng === null) return;
+        for (var i = 0; i < links.length; i++) {
+          var url = new URL(links[i].href);
+          url.searchParams.set('lat', lat);
+          url.searchParams.set('long', lng);
+          if (z !== null) url.searchParams.set('z', z);
+          links[i].href = url.toString();
+        }
+      })();
 
       var devicePixelRatio = window.devicePixelRatio || 1;
       var targetHeading = 0;
@@ -429,14 +446,18 @@
       }
 
       /**
-       * Attaches deviceorientation (and deviceorientationabsolute if available)
-       * listeners to begin receiving heading data.
+       * Attaches a deviceorientation listener to begin receiving heading data.
+       * Prefers the absolute orientation event when available (Android Chrome),
+       * otherwise falls back to the relative deviceorientation event (iOS).
+       * Only one listener is registered to avoid mixing absolute and relative
+       * heading vectors in the averaging buffer.
        */
       function startListening() {
         if ('ondeviceorientationabsolute' in window) {
           window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        } else {
+          window.addEventListener('deviceorientation', handleOrientation, true);
         }
-        window.addEventListener('deviceorientation', handleOrientation, true);
       }
 
       /**

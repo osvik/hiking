@@ -7,7 +7,7 @@
  *
  * @module routes
  */
-import { map, userMarker, userAltitude } from './map.js';
+import { map, userMarker, userAltitude, escapeHtml } from './map.js';
 
 /** @type {?function} Pending modal resolve callback, cleared on dismiss. */
 let modalResolve = null;
@@ -321,7 +321,7 @@ function handleAddPoint() {
         }).addTo(map);
 
         if (pt.label) {
-          marker.bindTooltip(pt.label, { permanent: true, direction: 'top', offset: [0, -10] });
+          marker.bindTooltip(escapeHtml(pt.label), { permanent: true, direction: 'top', offset: [0, -10] });
         }
 
         routeMarkers.push(marker);
@@ -418,7 +418,7 @@ function loadAllRoutes(filterIds) {
         }).addTo(map);
 
         if (p.label) {
-          marker.bindTooltip(p.label, { permanent: true, direction: 'top', offset: [0, -10] });
+          marker.bindTooltip(escapeHtml(p.label), { permanent: true, direction: 'top', offset: [0, -10] });
         }
 
         if (isEditing) {

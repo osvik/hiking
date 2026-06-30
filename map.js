@@ -61,6 +61,22 @@ let sharedMarkersLayer = L.layerGroup();
 let sharingCount = 0;
 
 /**
+ * Escapes a string for safe insertion into HTML (e.g. Leaflet tooltips, which
+ * render content as HTML). Replaces the five significant characters.
+ *
+ * @param {*} str - The raw value to escape.
+ * @returns {string} The HTML-escaped string.
+ */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
  * Updates the sharing label to show the count of other sharing users
  * followed by the user's own nickname.
  */
@@ -415,7 +431,7 @@ function renderSharedUsers(users) {
       iconAnchor: [16, 16],
     });
     var marker = L.marker([u.lat, u.lon], { icon: icon }).addTo(sharedMarkersLayer);
-    marker.bindTooltip(u.nickname, {
+    marker.bindTooltip(escapeHtml(u.nickname), {
       permanent: true,
       direction: 'top',
       offset: [0, -14],
@@ -526,7 +542,7 @@ if (menuSatellite) {
 }
 
 menuCompass.addEventListener('click', function() {
-  window.location = 'compass.html';
+  window.location = buildViewUrl('compass.html');
 });
 
 if (menuWeather) {
@@ -548,15 +564,15 @@ menuFinishRoute.addEventListener('click', function() {
 });
 
 menuList.addEventListener('click', function() {
-  window.location = 'list.html';
+  window.location = buildViewUrl('list.html');
 });
 
 menuAdmin.addEventListener('click', function() {
-  window.location = 'admin.html';
+  window.location = buildViewUrl('admin.html');
 });
 
 menuAbout.addEventListener('click', function() {
-  window.location = 'about.html';
+  window.location = buildViewUrl('about.html');
 });
 
 centerBtn.addEventListener('click', function() {
@@ -613,4 +629,4 @@ if (new URLSearchParams(window.location.search).get('action') === 'new') {
   handleCreateRoute();
 }
 
-export { map, userMarker, userAltitude };
+export { map, userMarker, userAltitude, escapeHtml };

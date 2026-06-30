@@ -294,7 +294,7 @@
       var menuDropdown = document.getElementById('menuDropdown');
 
       (function () {
-        var links = menuDropdown.querySelectorAll('[href="index.html"], [href="satellite.html"]');
+        var links = menuDropdown.querySelectorAll('a.menu-item');
         var params = new URLSearchParams(window.location.search);
         var lat = params.get('lat');
         var lng = params.get('long');
