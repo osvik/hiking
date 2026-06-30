@@ -190,6 +190,12 @@
       margin-top: 2px;
     }
 
+    .route-altitude {
+      font-size: 12px;
+      color: #666;
+      margin-top: 2px;
+    }
+
     .user-card {
       background: #fff;
       border-radius: 12px;
@@ -482,6 +488,24 @@
 
           info.appendChild(nameEl);
           info.appendChild(idEl);
+
+          if (route.points && route.points.length >= 2) {
+            var altitudes = [];
+            route.points.forEach(function (p) {
+              if (p.altitude !== null && p.altitude !== undefined) {
+                altitudes.push(p.altitude);
+              }
+            });
+            if (altitudes.length >= 2) {
+              var minAlt = Math.min.apply(null, altitudes);
+              var maxAlt = Math.max.apply(null, altitudes);
+              var altEl = document.createElement('div');
+              altEl.className = 'route-altitude';
+              altEl.textContent = 'altitude: ' + Math.round(minAlt) + ' m – ' + Math.round(maxAlt) + ' m';
+              info.appendChild(altEl);
+            }
+          }
+
           card.appendChild(colorSwatch);
           card.appendChild(info);
           routeList.appendChild(card);
